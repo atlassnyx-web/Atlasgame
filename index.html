@@ -1,1229 +1,1676 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#050510">
-<title>الثقب الأسود</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChromeClone - By You</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234285F4'/><circle cx='50' cy='50' r='18' fill='white'/></svg>">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
-html, body { width:100%; height:100%; overflow:hidden; background:#050510; color:#fff; font-family:'Cairo', Tahoma, sans-serif; touch-action:none; cursor:none; }
-#game { position:absolute; inset:0; display:block; width:100%; height:100%; }
-
-/* Vignette */
-#vignette { position:absolute; inset:0; pointer-events:none; z-index:8; background:radial-gradient(circle at center, transparent 50%, rgba(0,0,0,0.75) 100%); }
-
-/* HUD */
-#hud { position:absolute; inset:0; pointer-events:none; z-index:10; display:none; }
-#hud.show { display:block; }
-
-#topInfo {
-  position:absolute; top:14px; left:50%; transform:translateX(-50%);
-  text-align:center;
-  display:flex; gap:14px;
+:root {
+    --bg-tabstrip: #dee1e6;
+    --bg-toolbar: #ffffff;
+    --bg-tab-active: #ffffff;
+    --bg-tab-inactive: transparent;
+    --bg-hover: #e8eaed;
+    --bg-hover-strong: #d6d9dd;
+    --text-primary: #202124;
+    --text-secondary: #5f6368;
+    --border: #dadce0;
+    --accent: #1a73e8;
+    --bg-content: #ffffff;
+    --bg-ntp: #f8f9fa;
+    --shadow-tab: 0 1px 3px rgba(0,0,0,0.15);
+    --bg-menus: #ffffff;
 }
-.stat {
-  background:rgba(0,0,0,0.55);
-  border:1px solid rgba(150,100,255,0.5);
-  border-radius:12px;
-  padding:8px 16px;
-  text-align:center;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-  box-shadow:0 0 20px rgba(120,60,220,0.3);
-}
-.stat .lbl { font-size:10px; color:#a89ec4; font-weight:900; letter-spacing:2px; }
-.stat .val {
-  font-family:'Orbitron', sans-serif;
-  font-size:24px; font-weight:900; color:#fff;
-  line-height:1; margin-top:2px;
-  text-shadow:0 0 10px rgba(160,100,255,0.8);
-}
-.stat .val.gold { color:#f5c518; text-shadow:0 0 12px rgba(245,197,24,0.7); }
-.stat .val.red { color:#ef4444; text-shadow:0 0 12px rgba(239,68,68,0.7); }
-
-/* Time bar */
-#timeBar {
-  position:absolute; top:80px; left:50%; transform:translateX(-50%);
-  width:min(340px, 60vw); height:8px;
-  background:rgba(0,0,0,0.6);
-  border:1px solid rgba(150,100,255,0.4);
-  border-radius:6px;
-  overflow:hidden;
-}
-#timeFill {
-  height:100%; width:100%;
-  background:linear-gradient(90deg, #a855f7, #7c3aed);
-  transition:width 0.1s linear;
-  box-shadow:0 0 12px rgba(168,85,247,0.7);
-}
-#timeBar.warn #timeFill { background:linear-gradient(90deg, #ef4444, #c41010); box-shadow:0 0 12px rgba(239,68,68,0.7); }
-
-/* Size indicator (bottom left) */
-#sizeBox {
-  position:absolute; bottom:24px; left:24px;
-  background:rgba(0,0,0,0.5);
-  border:1px solid rgba(150,100,255,0.4);
-  border-radius:12px;
-  padding:10px 16px;
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-}
-#sizeBox .lbl { font-size:10px; color:#a89ec4; font-weight:900; letter-spacing:2px; }
-#sizeBox .val {
-  font-family:'Orbitron', sans-serif;
-  font-size:22px; font-weight:900; color:#a855f7;
-  line-height:1;
-  text-shadow:0 0 12px rgba(168,85,247,0.8);
+[data-theme="dark"] {
+    --bg-tabstrip: #202124;
+    --bg-toolbar: #292a2d;
+    --bg-tab-active: #35363a;
+    --bg-tab-inactive: transparent;
+    --bg-hover: #3c4043;
+    --bg-hover-strong: #4a4d51;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --border: #3c4043;
+    --accent: #8ab4f8;
+    --bg-content: #202124;
+    --bg-ntp: #202124;
+    --shadow-tab: 0 1px 3px rgba(0,0,0,0.5);
+    --bg-menus: #292a2d;
 }
 
-/* Grow banner */
-#growBanner {
-  position:absolute; top:35%; left:50%; transform:translate(-50%, -50%);
-  font-family:'Orbitron', sans-serif;
-  font-size:52px; font-weight:900;
-  color:#a855f7;
-  text-shadow: 0 0 20px rgba(168,85,247,1), 0 0 40px rgba(168,85,247,0.6);
-  opacity:0; pointer-events:none;
-  z-index:11; letter-spacing:4px;
-}
-#growBanner.show { animation: growPop 1s ease-out; }
-@keyframes growPop {
-  0% { opacity:0; transform:translate(-50%, -50%) scale(0.5); }
-  20% { opacity:1; transform:translate(-50%, -50%) scale(1.2); }
-  80% { opacity:1; transform:translate(-50%, -50%) scale(1); }
-  100% { opacity:0; transform:translate(-50%, -50%) scale(1.4); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    background: var(--bg-toolbar);
+    color: var(--text-primary);
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Eat popup */
-.eatPopup {
-  position:absolute;
-  font-family:'Orbitron', sans-serif;
-  font-size:20px; font-weight:900;
-  color:#f5c518;
-  text-shadow:0 0 10px rgba(245,197,24,0.9);
-  pointer-events:none;
-  z-index:9;
-  animation: eatFloat 0.7s ease-out forwards;
-}
-@keyframes eatFloat {
-  from { opacity:1; transform:translateY(0); }
-  to { opacity:0; transform:translateY(-50px); }
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 
-/* Timer running low */
-#lowTimeFlash {
-  position:absolute; inset:0;
-  background:radial-gradient(circle at center, transparent 40%, rgba(200,0,0,0.5) 100%);
-  opacity:0; pointer-events:none; z-index:8;
+/* ============ TAB STRIP ============ */
+#tabstrip {
+    background: var(--bg-tabstrip);
+    display: flex;
+    align-items: flex-end;
+    height: 40px;
+    padding: 6px 8px 0 8px;
+    gap: 2px;
+    -webkit-app-region: drag;
 }
-#lowTimeFlash.show { animation: lowFlash 0.6s infinite; }
-@keyframes lowFlash {
-  0%,100% { opacity:0; }
-  50% { opacity:0.6; }
+#tabs {
+    display: flex;
+    align-items: flex-end;
+    flex: 1;
+    min-width: 0;
+    gap: 1px;
+    overflow: hidden;
+}
+.tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    height: 32px;
+    min-width: 60px;
+    max-width: 220px;
+    flex: 0 1 220px;
+    background: var(--bg-tab-inactive);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+    -webkit-app-region: no-drag;
+}
+.tab:hover { background: var(--bg-hover); }
+.tab.active {
+    background: var(--bg-tab-active);
+    box-shadow: var(--shadow-tab);
+    flex: 1 1 220px;
+}
+.tab .favicon {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 9px; font-weight: bold;
+}
+.tab .title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: var(--text-primary);
+}
+.tab .close {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+.tab .close:hover { background: var(--bg-hover-strong); }
+.tab:not(.active):not(:hover) .close { opacity: 0; }
+
+#new-tab-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 18px;
+    margin-bottom: 2px;
+    flex-shrink: 0;
+    -webkit-app-region: no-drag;
+}
+#new-tab-btn:hover { background: var(--bg-hover); }
+
+#window-controls {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+    -webkit-app-region: no-drag;
+}
+.win-btn {
+    width: 32px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.win-btn:hover { background: var(--bg-hover); }
+.win-btn.close:hover { background: #e81123; color: white; }
+
+/* ============ TOOLBAR ============ */
+#toolbar {
+    background: var(--bg-toolbar);
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 8px;
+    gap: 4px;
+    border-bottom: 1px solid transparent;
+}
+.nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.nav-btn:hover { background: var(--bg-hover); }
+.nav-btn.disabled { color: var(--text-secondary); opacity: 0.4; pointer-events: none; }
+.nav-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+#omnibox-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: var(--bg-hover);
+    border-radius: 20px;
+    height: 32px;
+    padding: 0 12px;
+    gap: 8px;
+    margin: 0 6px;
+    border: 1px solid transparent;
+    transition: background 0.15s, border 0.15s, box-shadow 0.15s;
+    min-width: 0;
+}
+#omnibox-wrap:focus-within {
+    background: var(--bg-toolbar);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+}
+#security-icon {
+    width: 16px; height: 16px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+#security-icon.secure { color: #1e8e3e; }
+#omnibox {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 0;
+}
+#omnibox::placeholder { color: var(--text-secondary); }
+.omnibox-action {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+.omnibox-action:hover { background: var(--bg-hover-strong); }
+.omnibox-action svg { width: 14px; height: 14px; fill: currentColor; }
+.omnibox-action.starred { color: var(--accent); }
+.omnibox-action.starred svg { fill: currentColor; }
+
+#profile-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #4285F4, #7C3AED);
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    border: 2px solid transparent;
+}
+#profile-btn:hover { border-color: var(--accent); }
+
+/* ============ BOOKMARKS BAR ============ */
+#bookmarks-bar {
+    background: var(--bg-toolbar);
+    display: none;
+    align-items: center;
+    height: 34px;
+    padding: 0 8px;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+#bookmarks-bar.visible { display: flex; }
+#bookmarks-bar::-webkit-scrollbar { height: 0; }
+.bookmark {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    flex-shrink: 0;
+    max-width: 180px;
+    overflow: hidden;
+}
+.bookmark:hover { background: var(--bg-hover); }
+.bookmark .favicon {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+}
+.bookmark span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* Overlays */
-.overlay {
-  position:absolute; inset:0;
-  display:none; flex-direction:column;
-  justify-content:center; align-items:center;
-  background:radial-gradient(circle at center, rgba(20,5,40,0.95), rgba(0,0,0,0.99));
-  z-index:30; padding:24px; text-align:center; overflow-y:auto;
+/* ============ CONTENT ============ */
+#content {
+    flex: 1;
+    position: relative;
+    background: var(--bg-content);
+    overflow: hidden;
 }
-.overlay.show { display:flex; }
 
-.title-main {
-  font-family:'Orbitron', sans-serif;
-  font-size:64px; font-weight:900; letter-spacing:8px;
-  line-height:1; margin-bottom:6px;
-  background:linear-gradient(180deg, #c084fc 0%, #7c3aed 50%, #4c1d95 100%);
-  -webkit-background-clip:text; background-clip:text;
-  -webkit-text-fill-color:transparent;
-  filter: drop-shadow(0 0 18px rgba(168,85,247,0.85)) drop-shadow(0 0 36px rgba(168,85,247,0.4));
-  animation: pulse 2.6s ease-in-out infinite alternate;
+/* New Tab Page */
+#ntp {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-ntp);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
 }
-@keyframes pulse {
-  from { filter: drop-shadow(0 0 12px rgba(168,85,247,0.6)) drop-shadow(0 0 24px rgba(168,85,247,0.3)); }
-  to   { filter: drop-shadow(0 0 22px rgba(168,85,247,1)) drop-shadow(0 0 44px rgba(168,85,247,0.5)); }
+#ntp-logo {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 32px;
+    background: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    user-select: none;
 }
-.subtitle { font-size:13px; color:#a89ec4; letter-spacing:12px; margin-bottom:36px; font-weight:900; }
+#ntp-search-wrap {
+    width: 100%;
+    max-width: 580px;
+    display: flex;
+    align-items: center;
+    background: var(--bg-toolbar);
+    border-radius: 24px;
+    padding: 0 18px;
+    height: 48px;
+    gap: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 6px rgba(32,33,36,0.10);
+    transition: box-shadow 0.2s;
+}
+#ntp-search-wrap:focus-within {
+    box-shadow: 0 1px 10px rgba(32,33,36,0.20);
+}
+#ntp-search-wrap svg { width: 20px; height: 20px; fill: var(--text-secondary); flex-shrink: 0; }
+#ntp-search {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+}
+#ntp-search::placeholder { color: var(--text-secondary); }
 
-.desc { max-width:400px; color:#c4b8d4; font-size:14px; line-height:2; margin-bottom:28px; }
-.desc b { color:#c084fc; }
+#shortcuts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 112px);
+    gap: 8px;
+    margin-top: 42px;
+    justify-content: center;
+    max-width: 700px;
+    width: 100%;
+}
+.shortcut {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    gap: 10px;
+    position: relative;
+}
+.shortcut:hover { background: var(--bg-hover); }
+.shortcut .icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.shortcut .label {
+    font-size: 12px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    text-align: center;
+}
 
-.btn {
-  font-family:'Cairo', sans-serif;
-  padding:16px 52px; font-size:18px; font-weight:900;
-  background:linear-gradient(180deg, #a855f7, #6d28d9);
-  color:#fff; border:none; border-radius:14px;
-  cursor:pointer; letter-spacing:1.5px;
-  box-shadow: 0 6px 0 #3b0764, 0 10px 30px rgba(168,85,247,0.5);
-  transition:transform 0.1s, box-shadow 0.1s;
-  margin:6px 0;
+#ntp-footer {
+    margin-top: auto;
+    padding-top: 60px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-secondary);
 }
-.btn:active { transform:translateY(5px); box-shadow:0 1px 0 #3b0764; }
+#ntp-footer .avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4285F4, #7C3AED);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+}
 
-.final-title {
-  font-family:'Orbitron', sans-serif;
-  font-size:38px; font-weight:900; letter-spacing:6px;
-  color:#c084fc; line-height:1; margin-bottom:8px;
-  text-shadow:0 0 20px rgba(192,132,252,0.7);
+/* Page frame */
+#page {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+    display: none;
 }
-.final-block {
-  display:flex; gap:34px; margin:22px 0 28px;
-}
-.final-block .item { text-align:center; }
-.final-block .lbl { font-size:10px; color:#a89ec4; font-weight:900; letter-spacing:2px; margin-bottom:6px; }
-.final-block .val {
-  font-family:'Orbitron', sans-serif;
-  font-size:44px; font-weight:900; color:#f5c518;
-  line-height:1; text-shadow:0 0 18px rgba(245,197,24,0.6);
-}
-.final-block .val.small { font-size:28px; color:#4ade80; text-shadow:0 0 14px rgba(74,222,128,0.5); }
+#page.visible { display: block; }
 
-.new-record {
-  font-family:'Cairo', sans-serif;
-  font-size:14px; font-weight:900; color:#4ade80;
-  letter-spacing:2px; margin-bottom:12px;
-  animation: blink 1s ease-in-out infinite;
+#blocked-notice {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-ntp);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    gap: 16px;
 }
-@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+#blocked-notice.visible { display: flex; }
+#blocked-notice .icon { font-size: 56px; }
+#blocked-notice h2 { font-size: 20px; font-weight: 500; color: var(--text-primary); }
+#blocked-notice p { max-width: 500px; color: var(--text-secondary); line-height: 1.6; }
+#blocked-notice .btn {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: box-shadow 0.2s;
+}
+#blocked-notice .btn:hover { box-shadow: 0 1px 3px rgba(60,64,67,0.3); }
 
-/* Rotate warning */
-#rotateMsg {
-  position:fixed; inset:0; z-index:9999;
-  display:none; flex-direction:column;
-  justify-content:center; align-items:center;
-  background:#050510; color:#fff; text-align:center; padding:20px;
+/* ============ MENU ============ */
+#menu-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 1000;
 }
-#rotateMsg.show { display:flex; }
-#rotateMsg .icon { font-size:80px; margin-bottom:20px; animation:rot 2s ease-in-out infinite; color:#a855f7; }
-@keyframes rot { 0%,100% { transform:rotate(0deg); } 50% { transform:rotate(90deg); } }
-#rotateMsg .txt { font-size:18px; font-weight:900; color:#c084fc; letter-spacing:2px; }
-#rotateMsg .sub { font-size:13px; color:#a89ec4; margin-top:10px; }
-@media (orientation: portrait) { #rotateMsg.show { display:flex; } }
+#menu-overlay.open { display: block; }
+#main-menu {
+    position: absolute;
+    top: 88px;
+    right: 8px;
+    width: 300px;
+    background: var(--bg-menus);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+    padding: 8px 0;
+    animation: menuIn 0.15s ease-out;
+}
+@keyframes menuIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    gap: 12px;
+}
+.menu-item:hover { background: var(--bg-hover); }
+.menu-item .icon { width: 18px; text-align: center; opacity: 0.7; font-size: 14px; }
+.menu-item .shortcut-hint {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+.menu-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+}
+.menu-header {
+    padding: 12px 16px 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+}
+
+/* ============ SETTINGS DRAWER ============ */
+#settings-drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 380px;
+    background: var(--bg-menus);
+    box-shadow: -2px 0 16px rgba(0,0,0,0.20);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+}
+#settings-drawer.open { transform: translateX(0); }
+.settings-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.settings-header h2 { font-size: 15px; font-weight: 500; }
+.settings-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+.settings-section {
+    padding: 12px 20px;
+}
+.settings-section h3 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-size: 13px;
+}
+.toggle {
+    width: 40px; height: 22px;
+    border-radius: 11px;
+    background: var(--bg-hover-strong);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(18px); }
+.theme-btn-group { display: flex; gap: 4px; }
+.theme-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+}
+.theme-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* ============ FIND BAR ============ */
+#find-bar {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    background: var(--bg-menus);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.20);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 500;
+}
+#find-bar.open { display: flex; }
+#find-input {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 13px;
+    outline: none;
+    width: 200px;
+    font-family: inherit;
+}
+#find-input:focus { border-color: var(--accent); }
+
+/* ============ HISTORY PANEL ============ */
+#history-panel {
+    position: absolute;
+    top: 96px;
+    right: 16px;
+    width: 420px;
+    max-height: 500px;
+    background: var(--bg-menus);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+    display: none;
+    flex-direction: column;
+    z-index: 900;
+    overflow: hidden;
+}
+#history-panel.open { display: flex; }
+#history-panel .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#history-panel h3 { font-size: 14px; font-weight: 500; }
+#history-list { flex: 1; overflow-y: auto; max-height: 420px; }
+.history-item {
+    padding: 10px 18px;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.history-item:hover { background: var(--bg-hover); }
+.history-item .h-title { font-weight: 500; color: var(--text-primary); }
+.history-item .h-url { color: var(--text-secondary); font-size: 11px; }
+.history-item .h-time { color: var(--text-secondary); font-size: 11px; margin-left: auto; }
+.history-empty { padding: 30px; text-align: center; color: var(--text-secondary); font-size: 12px; }
+
+/* ============ TOAST ============ */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 5000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.toast {
+    background: #323232;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    animation: toastIn 0.3s ease-out;
+    max-width: 340px;
+}
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ DOWNLOAD BAR ============ */
+#downloads-bar {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 340px;
+    background: var(--bg-menus);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    padding: 14px 16px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    z-index: 400;
+}
+#downloads-bar.open { display: flex; }
+#downloads-bar .dl-info { flex: 1; }
+#downloads-bar .dl-name { font-size: 13px; font-weight: 500; }
+#downloads-bar .dl-status { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #a5a5a5; border-radius: 6px; border: 3px solid var(--bg-ntp); }
+::-webkit-scrollbar-thumb:hover { background: #808080; }
+
+/* responsive */
+@media (max-width: 700px) {
+    #shortcuts { grid-template-columns: repeat(auto-fill, 90px); }
+    .shortcut .icon { width: 42px; height: 42px; font-size: 18px; }
+    #settings-drawer { width: 100%; }
+    #history-panel { width: calc(100% - 32px); }
+}
 </style>
 </head>
 <body>
 
-<div id="rotateMsg">
-  <div class="icon">🕳️</div>
-  <div class="txt">أدِر جهازك بالعرض</div>
-  <div class="sub">اللعبة تحتاج الوضع الأفقي</div>
+<div id="app">
+
+    <!-- TAB STRIP -->
+    <div id="tabstrip">
+        <div id="tabs"></div>
+        <div id="new-tab-btn" title="New Tab (Ctrl+T)">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </div>
+        <div id="window-controls">
+            <div class="win-btn" title="Minimize">─</div>
+            <div class="win-btn" title="Maximize">□</div>
+            <div class="win-btn close" title="Close">✕</div>
+        </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div id="toolbar">
+        <div class="nav-btn" id="btn-back" title="Back (Alt+←)">
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </div>
+        <div class="nav-btn" id="btn-forward" title="Forward (Alt+→)">
+            <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+        </div>
+        <div class="nav-btn" id="btn-reload" title="Reload (F5)">
+            <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        </div>
+        <div class="nav-btn" id="btn-home" title="Home (Alt+Home)">
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        </div>
+
+        <div id="omnibox-wrap">
+            <div id="security-icon" title="Connection is secure">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </div>
+            <input type="text" id="omnibox" placeholder="Search Google or type a URL" autocomplete="off" spellcheck="false">
+            <div class="omnibox-action" id="btn-bookmark" title="Bookmark this tab (Ctrl+D)">
+                <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+            </div>
+            <div class="omnibox-action" id="btn-share" title="Share">
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+            </div>
+        </div>
+
+        <div class="nav-btn" id="btn-extensions" title="Extensions">
+            <svg viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg>
+        </div>
+        <div class="nav-btn" id="btn-menu" title="Customize and control (Alt+F)">
+            <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        </div>
+        <div id="profile-btn" title="You (Developer)">Y</div>
+    </div>
+
+    <!-- BOOKMARKS BAR -->
+    <div id="bookmarks-bar"></div>
+
+    <!-- CONTENT -->
+    <div id="content">
+        <!-- New Tab Page -->
+        <div id="ntp">
+            <div id="ntp-logo">ChromeClone</div>
+            <div id="ntp-search-wrap">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="ntp-search" placeholder="Search the web" autocomplete="off">
+            </div>
+            <div id="shortcuts"></div>
+            <div id="ntp-footer">
+                <div class="avatar">Y</div>
+                <span>Developed by <strong>You</strong></span>
+            </div>
+        </div>
+
+        <!-- Real page (iframe) -->
+        <iframe id="page" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
+
+        <!-- Blocked notice -->
+        <div id="blocked-notice">
+            <div class="icon">🚫</div>
+            <h2>This site can't be embedded</h2>
+            <p id="blocked-url-text">Many sites (Google, YouTube, Facebook, etc.) block being displayed inside other sites for security reasons. Open it in a real browser tab instead.</p>
+            <button class="btn" id="open-real">Open in Real Browser</button>
+        </div>
+    </div>
+
 </div>
 
-<canvas id="game"></canvas>
-<div id="vignette"></div>
-<div id="lowTimeFlash"></div>
-
-<div id="hud">
-  <div id="topInfo">
-    <div class="stat"><div class="lbl">النقاط</div><div class="val gold" id="scoreVal">0</div></div>
-    <div class="stat"><div class="lbl">الوقت</div><div class="val" id="timeVal">90</div></div>
-  </div>
-  <div id="timeBar"><div id="timeFill"></div></div>
-  <div id="sizeBox">
-    <div class="lbl">حجمك</div>
-    <div class="val" id="sizeVal">1.0</div>
-  </div>
+<!-- MENU OVERLAY -->
+<div id="menu-overlay">
+    <div id="main-menu">
+        <div class="menu-item" data-action="new-tab">
+            <span class="icon">+</span><span>New tab</span>
+            <span class="shortcut-hint">Ctrl+T</span>
+        </div>
+        <div class="menu-item" data-action="new-window">
+            <span class="icon">▢</span><span>New window</span>
+            <span class="shortcut-hint">Ctrl+N</span>
+        </div>
+        <div class="menu-item" data-action="history">
+            <span class="icon">🕘</span><span>History</span>
+            <span class="shortcut-hint">Ctrl+H</span>
+        </div>
+        <div class="menu-item" data-action="bookmarks">
+            <span class="icon">⭐</span><span>Bookmarks</span>
+            <span class="shortcut-hint">Ctrl+Shift+B</span>
+        </div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="find">
+            <span class="icon">🔍</span><span>Find</span>
+            <span class="shortcut-hint">Ctrl+F</span>
+        </div>
+        <div class="menu-item" data-action="zoom-in">
+            <span class="icon">+</span><span>Zoom in</span>
+            <span class="shortcut-hint">Ctrl++</span>
+        </div>
+        <div class="menu-item" data-action="zoom-out">
+            <span class="icon">−</span><span>Zoom out</span>
+            <span class="shortcut-hint">Ctrl+-</span>
+        </div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" data-action="settings">
+            <span class="icon">⚙</span><span>Settings</span>
+        </div>
+        <div class="menu-item" data-action="about">
+            <span class="icon">ℹ</span><span>About ChromeClone</span>
+        </div>
+        <div class="menu-separator"></div>
+        <div class="menu-header">Developed by You</div>
+    </div>
 </div>
 
-<div id="growBanner"></div>
-
-<div class="overlay show" id="startScreen">
-  <div class="title-main">الثقب الأسود</div>
-  <div class="subtitle">الـــبـــلـــع</div>
-  <div class="desc">
-    أنت ثقب أسود في مدينة<br>
-    <b>تحرك</b> لتأكل كل شي — سيارات، أشجار، بنايات<br>
-    <b>كل ما تأكل أكثر، تكبر أكثر</b><br>
-    ⏱️ عندك <b>90 ثانية</b> — سجّل أعلى نتيجة
-  </div>
-  <button class="btn" id="startBtn">ابدأ اللعب</button>
+<!-- SETTINGS DRAWER -->
+<div id="settings-drawer">
+    <div class="settings-header">
+        <h2>⚙ Settings</h2>
+        <div class="nav-btn" id="close-settings" style="width:28px;height:28px;cursor:pointer;">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </div>
+    </div>
+    <div class="settings-body">
+        <div class="settings-section">
+            <h3>Appearance</h3>
+            <div class="setting-row">
+                <span>Theme</span>
+                <div class="theme-btn-group">
+                    <button class="theme-btn" data-theme="light">Light</button>
+                    <button class="theme-btn" data-theme="dark">Dark</button>
+                    <button class="theme-btn" data-theme="auto">Auto</button>
+                </div>
+            </div>
+            <div class="setting-row">
+                <span>Show bookmarks bar</span>
+                <div class="toggle" id="toggle-bookmarks"></div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Search Engine</h3>
+            <div class="setting-row">
+                <span>Default engine</span>
+                <select id="search-engine" style="background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-family:inherit;outline:none;">
+                    <option value="google">Google</option>
+                    <option value="bing">Bing</option>
+                    <option value="ddg">DuckDuckGo</option>
+                    <option value="yandex">Yandex</option>
+                </select>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Privacy & Security</h3>
+            <div class="setting-row">
+                <span>Block third-party cookies</span>
+                <div class="toggle on"></div>
+            </div>
+            <div class="setting-row">
+                <span>Safe Browsing</span>
+                <div class="toggle on"></div>
+            </div>
+            <div class="setting-row">
+                <span>Do Not Track</span>
+                <div class="toggle"></div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Data</h3>
+            <div class="setting-row">
+                <span>History</span>
+                <button class="theme-btn" id="clear-history-btn">Clear</button>
+            </div>
+            <div class="setting-row">
+                <span>Bookmarks</span>
+                <button class="theme-btn" id="clear-bookmarks-btn">Clear</button>
+            </div>
+        </div>
+        <div class="settings-section" style="margin-top:20px;padding-bottom:40px;text-align:center;color:var(--text-secondary);font-size:12px;">
+            <p>ChromeClone v1.0.0</p>
+            <p style="margin-top:6px;">Developed by <strong style="color:var(--accent);">You</strong></p>
+            <p style="margin-top:6px;opacity:0.6;">© 2024 - All Rights Reserved</p>
+        </div>
+    </div>
 </div>
 
-<div class="overlay" id="overScreen">
-  <div class="final-title">انتهى الوقت!</div>
-  <div class="new-record" id="newRecord" style="display:none;">🏆 رقم قياسي جديد!</div>
-  <div class="final-block">
-    <div class="item"><div class="lbl">النقاط</div><div class="val" id="finalScore">0</div></div>
-    <div class="item"><div class="lbl">أكبر حجم</div><div class="val small" id="finalSize">1.0</div></div>
-  </div>
-  <button class="btn" id="restartBtn">🔄 العب مرة أخرى</button>
+<!-- HISTORY PANEL -->
+<div id="history-panel">
+    <div class="panel-header">
+        <h3>🕘 History</h3>
+        <div class="nav-btn" id="close-history" style="width:28px;height:28px;cursor:pointer;">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </div>
+    </div>
+    <div id="history-list"></div>
 </div>
+
+<!-- FIND BAR -->
+<div id="find-bar">
+    <input type="text" id="find-input" placeholder="Find in page...">
+    <span id="find-info" style="font-size:11px;color:var(--text-secondary);">0/0</span>
+    <div class="nav-btn" style="width:24px;height:24px;" id="close-find">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </div>
+</div>
+
+<!-- DOWNLOADS BAR -->
+<div id="downloads-bar">
+    <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">⬇</div>
+    <div class="dl-info">
+        <div class="dl-name">Download started</div>
+        <div class="dl-status">Handled by your browser</div>
+    </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container"></div>
 
 <script>
-/* ==========================================================
-   الثقب الأسود — Black Hole City
-   ========================================================== */
+/* ============================================================
+   CHROMECLONE — Developed by You
+   ============================================================ */
 
-const IS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-// ============ Telegram ============
-const tg = window.Telegram?.WebApp;
-if (tg) {
-  try { tg.expand(); tg.ready(); tg.setHeaderColor('#050510'); tg.setBackgroundColor('#050510'); } catch(e){}
-}
-
-// ============ Audio ============
-let audioCtx = null;
-function initAudio() {
-  if (audioCtx) return;
-  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-}
-function tone(freq, type, dur, vol, sweepTo) {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  osc.type = type || 'sine';
-  osc.frequency.setValueAtTime(freq, t);
-  if (sweepTo) osc.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(g); g.connect(audioCtx.destination);
-  osc.start(t); osc.stop(t + dur + 0.02);
-}
-function noise(dur, vol, freq) {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const bs = Math.floor(audioCtx.sampleRate * dur);
-  const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < bs; i++) d[i] = Math.random() * 2 - 1;
-  const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const f = audioCtx.createBiquadFilter();
-  f.type = 'lowpass'; f.frequency.setValueAtTime(freq || 1000, t);
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(f); f.connect(g); g.connect(audioCtx.destination);
-  src.start(t); src.stop(t + dur + 0.02);
-}
-
-const sfx = {
-  eatSmall: () => {
-    tone(500, 'sine', 0.06, 0.08, 250);
-    noise(0.04, 0.05, 800);
-  },
-  eatBig: () => {
-    tone(280, 'sine', 0.15, 0.12, 100);
-    noise(0.15, 0.15, 500);
-    tone(180, 'triangle', 0.2, 0.08, 60);
-  },
-  grow: () => {
-    tone(400, 'sine', 0.15, 0.1, 800);
-    setTimeout(() => tone(600, 'sine', 0.15, 0.1, 1000), 80);
-    setTimeout(() => tone(900, 'sine', 0.2, 0.1, 1300), 160);
-  },
-  tick: () => {
-    tone(1200, 'square', 0.03, 0.04);
-  },
-  end: () => {
-    tone(600, 'sawtooth', 0.4, 0.15, 200);
-    tone(400, 'sawtooth', 0.5, 0.12, 100);
-    setTimeout(() => tone(200, 'sine', 0.8, 0.15, 60), 200);
-  },
-  suction: () => {
-    noise(0.08, 0.03, 300);
-  }
+const STORAGE = {
+    tabs: 'cc_tabs',
+    activeTab: 'cc_active_tab',
+    theme: 'cc_theme',
+    bookmarks: 'cc_bookmarks',
+    bookmarksBar: 'cc_bookmarks_bar',
+    history: 'cc_history',
+    engine: 'cc_engine',
+    shortcuts: 'cc_shortcuts'
 };
 
-// ============ Scene Setup ============
-const canvas = document.getElementById('game');
-const renderer = new THREE.WebGLRenderer({
-  canvas, antialias: false,
-  powerPreference: 'high-performance',
-  alpha: false
-});
-const pixelRatio = Math.min(window.devicePixelRatio || 1, IS_TOUCH ? 0.9 : 1.2);
-renderer.setPixelRatio(pixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x050510, 1);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0820);
-scene.fog = new THREE.Fog(0x0a0820, 45, 90);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-
-// ============ Lighting ============
-scene.add(new THREE.AmbientLight(0x8080a0, 0.8));
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-dirLight.position.set(30, 60, 20);
-scene.add(dirLight);
-
-// Purple accent light
-const purpleLight = new THREE.PointLight(0xa855f7, 1.2, 40);
-scene.add(purpleLight);
-
-// ============ World Size ============
-const WORLD = { size: 90 };  // 180x180 ground
-
-// ============ Ground ============
-function makeGroundTexture() {
-  const c = document.createElement('canvas');
-  c.width = 1024; c.height = 1024;
-  const g = c.getContext('2d');
-  // Asphalt base
-  g.fillStyle = '#2a2a38';
-  g.fillRect(0, 0, 1024, 1024);
-  // Random patches
-  for (let i = 0; i < 400; i++) {
-    const v = 30 + Math.random() * 20;
-    g.fillStyle = `rgba(${v}, ${v}, ${v+10}, ${0.3 + Math.random() * 0.3})`;
-    g.fillRect(Math.random() * 1024, Math.random() * 1024, 20 + Math.random() * 60, 20 + Math.random() * 60);
-  }
-  // Roads grid
-  g.strokeStyle = '#1a1a26';
-  g.lineWidth = 18;
-  for (let i = 0; i <= 4; i++) {
-    g.beginPath(); g.moveTo(i * 256, 0); g.lineTo(i * 256, 1024); g.stroke();
-    g.beginPath(); g.moveTo(0, i * 256); g.lineTo(1024, i * 256); g.stroke();
-  }
-  // Yellow road lines
-  g.strokeStyle = '#d4a017';
-  g.lineWidth = 3;
-  g.setLineDash([30, 30]);
-  for (let i = 1; i < 4; i++) {
-    g.beginPath(); g.moveTo(i * 256, 0); g.lineTo(i * 256, 1024); g.stroke();
-    g.beginPath(); g.moveTo(0, i * 256); g.lineTo(1024, i * 256); g.stroke();
-  }
-  g.setLineDash([]);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(3, 3);
-  return tex;
-}
-
-const groundGeo = new THREE.PlaneGeometry(WORLD.size * 2, WORLD.size * 2);
-const groundMat = new THREE.MeshLambertMaterial({ map: makeGroundTexture() });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
-
-// Grid lines (subtle)
-const grid = new THREE.GridHelper(WORLD.size * 2, 30, 0x3a3050, 0x1a1530);
-grid.position.y = 0.02;
-scene.add(grid);
-
-// ============ Black Hole ============
-const blackHoleGroup = new THREE.Group();
-scene.add(blackHoleGroup);
-
-// Core sphere
-const coreGeo = new THREE.SphereGeometry(1, 24, 20);
-const coreMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-const core = new THREE.Mesh(coreGeo, coreMat);
-blackHoleGroup.add(core);
-
-// Accretion disk ring 1
-const ringGeo = new THREE.TorusGeometry(1.4, 0.12, 8, 40);
-const ringMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.9 });
-const ring1 = new THREE.Mesh(ringGeo, ringMat);
-ring1.rotation.x = Math.PI / 2;
-blackHoleGroup.add(ring1);
-
-// Accretion disk ring 2 (bigger, tilted)
-const ringGeo2 = new THREE.TorusGeometry(1.9, 0.08, 8, 40);
-const ringMat2 = new THREE.MeshBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.7 });
-const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
-ring2.rotation.x = Math.PI / 2.2;
-ring2.rotation.z = 0.5;
-blackHoleGroup.add(ring2);
-
-// Outer glow
-const glowGeo = new THREE.SphereGeometry(1.4, 16, 12);
-const glowMat = new THREE.MeshBasicMaterial({
-  color: 0x7c3aed, transparent: true, opacity: 0.25,
-  side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false
-});
-const glow = new THREE.Mesh(glowGeo, glowMat);
-blackHoleGroup.add(glow);
-
-// ============ Particle System (suction swirl) ============
-const PARTICLE_COUNT = 60;
-const particleGeo = new THREE.BufferGeometry();
-const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
-particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-const particleMat = new THREE.PointsMaterial({
-  color: 0xc084fc, size: 0.35, transparent: true, opacity: 0.9,
-  blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
-});
-const particleSystem = new THREE.Points(particleGeo, particleMat);
-scene.add(particleSystem);
-
-// Particle data (each has angle, radius, height, speed)
-const particleData = [];
-for (let i = 0; i < PARTICLE_COUNT; i++) {
-  particleData.push({
-    angle: Math.random() * Math.PI * 2,
-    radius: 1.5 + Math.random() * 3,
-    height: (Math.random() - 0.5) * 1.5,
-    speed: 1.5 + Math.random() * 2.5,
-    spinIn: 0.2 + Math.random() * 0.4,
-  });
-}
-
-// ============ Objects (city) ============
-const objects = [];
-const MAX_OBJECTS = 70;
-
-// Shared geometries
-const geos = {
-  buildingBox: new THREE.BoxGeometry(1, 1, 1),
-  carBody: new THREE.BoxGeometry(1, 0.6, 1),
-  carCabin: new THREE.BoxGeometry(0.6, 0.5, 0.5),
-  treeTrunk: new THREE.CylinderGeometry(0.15, 0.2, 1, 6),
-  treeCrown: new THREE.ConeGeometry(0.9, 1.6, 8),
-  person: new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.15, 0.4, 4, 6) : new THREE.CylinderGeometry(0.15, 0.15, 0.7, 6),
-  cone: new THREE.ConeGeometry(0.4, 0.8, 8),
-  boxSmall: new THREE.BoxGeometry(0.8, 0.8, 0.8),
-  bush: new THREE.SphereGeometry(0.5, 8, 6),
+const SEARCH_ENGINES = {
+    google: { name: 'Google', url: 'https://www.google.com/search?q=' },
+    bing:   { name: 'Bing',   url: 'https://www.bing.com/search?q=' },
+    ddg:    { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=' },
+    yandex: { name: 'Yandex', url: 'https://yandex.com/search/?text=' }
 };
 
-// Shared materials
-const mats = {
-  building: [0x5a5260, 0x6a6270, 0x504a5a, 0x705a62, 0x60525a].map(c =>
-    new THREE.MeshLambertMaterial({ color: c })),
-  car: [0xef4444, 0x3b82f6, 0xf5c518, 0x22c55e, 0xec4899].map(c =>
-    new THREE.MeshLambertMaterial({ color: c })),
-  carGlass: new THREE.MeshLambertMaterial({ color: 0x2a2a3a }),
-  tree: new THREE.MeshLambertMaterial({ color: 0x3a6a2a }),
-  trunk: new THREE.MeshLambertMaterial({ color: 0x4a3020 }),
-  person: [0xef4444, 0x3b82f6, 0xf5c518, 0x22c55e].map(c =>
-    new THREE.MeshLambertMaterial({ color: c })),
-  cone: new THREE.MeshLambertMaterial({ color: 0xff6600 }),
-  boxSmall: new THREE.MeshLambertMaterial({ color: 0x8a7a6a }),
-  bush: new THREE.MeshLambertMaterial({ color: 0x4a7a3a }),
-};
+const DEFAULT_SHORTCUTS = [
+    { name: 'Google',    url: 'https://www.google.com',        color: '#4285F4', initial: 'G' },
+    { name: 'YouTube',   url: 'https://www.youtube.com',       color: '#FF0000', initial: '▶' },
+    { name: 'Gmail',     url: 'https://mail.google.com',       color: '#EA4335', initial: 'M' },
+    { name: 'GitHub',    url: 'https://github.com',            color: '#24292E', initial: 'G' },
+    { name: 'WhatsApp',  url: 'https://web.whatsapp.com',      color: '#25D366', initial: 'W' },
+    { name: 'Instagram', url: 'https://www.instagram.com',     color: '#E1306C', initial: 'I' },
+    { name: 'Twitter/X', url: 'https://twitter.com',           color: '#000000', initial: 'X' },
+    { name: 'Reddit',    url: 'https://www.reddit.com',        color: '#FF4500', initial: 'R' },
+    { name: 'Wikipedia', url: 'https://www.wikipedia.org',     color: '#000000', initial: 'W' },
+    { name: 'Stack Overflow', url: 'https://stackoverflow.com', color: '#F48024', initial: 'S' }
+];
 
-// Tier info: { tier, size, mass, points }
-// tier 1: tiny (people, cones, boxes) - size 0.4
-// tier 2: small (trees, cars) - size 0.9
-// tier 3: medium (big cars, small buildings) - size 1.6
-// tier 4: large (big buildings) - size 2.8
-// tier 5: huge (skyscrapers) - size 4.5
+/* ============================================================
+   STATE
+   ============================================================ */
+let tabs = [];
+let activeTabId = null;
+let bookmarks = [];
+let history = [];
+let shortcuts = [];
+let bookmarksBarVisible = false;
+let searchEngine = 'google';
+let tabIdCounter = 1;
 
-function createRandomObject() {
-  const tierWeights = [0.4, 0.3, 0.15, 0.1, 0.05]; // tier 1 most common
-  let tier = 1;
-  const r = Math.random();
-  let acc = 0;
-  for (let i = 0; i < tierWeights.length; i++) {
-    acc += tierWeights[i];
-    if (r < acc) { tier = i + 1; break; }
-  }
+/* ============================================================
+   STORAGE HELPERS
+   ============================================================ */
+function load(key, fallback) {
+    try {
+        const v = localStorage.getItem(key);
+        return v ? JSON.parse(v) : fallback;
+    } catch (e) { return fallback; }
+}
+function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
 
-  const group = new THREE.Group();
-  let size, mass, points;
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+function init() {
+    loadSettings();
+    loadData();
+    applyTheme();
 
-  if (tier === 1) {
-    // Small: cone, box, person, bush
-    const type = Math.floor(Math.random() * 4);
-    if (type === 0) {
-      const m = new THREE.Mesh(geos.cone, mats.cone);
-      m.position.y = 0.4;
-      group.add(m);
-    } else if (type === 1) {
-      const m = new THREE.Mesh(geos.boxSmall, mats.boxSmall);
-      m.position.y = 0.4;
-      group.add(m);
-    } else if (type === 2) {
-      const m = new THREE.Mesh(geos.person, mats.person[Math.floor(Math.random() * 4)]);
-      m.position.y = 0.45;
-      group.add(m);
+    // Create first tab if none
+    if (tabs.length === 0) {
+        createTab(false);
     } else {
-      const m = new THREE.Mesh(geos.bush, mats.bush);
-      m.position.y = 0.4;
-      group.add(m);
+        renderTabs();
+        const active = tabs.find(t => t.id === activeTabId) || tabs[0];
+        activeTabId = active.id;
+        renderTabs();
+        loadTabContent(active);
     }
-    size = 0.5;
-    mass = 4;
-    points = 10;
-  } else if (tier === 2) {
-    // Trees and small cars
-    if (Math.random() < 0.5) {
-      const trunk = new THREE.Mesh(geos.treeTrunk, mats.trunk);
-      trunk.position.y = 0.5; trunk.scale.y = 1.0;
-      group.add(trunk);
-      const crown = new THREE.Mesh(geos.treeCrown, mats.tree);
-      crown.position.y = 1.4;
-      group.add(crown);
-      size = 0.9;
-      mass = 12;
-      points = 25;
+
+    renderBookmarksBar();
+    renderShortcuts();
+    bindEvents();
+    updateNavButtons();
+}
+
+function loadSettings() {
+    searchEngine = load(STORAGE.engine, 'google');
+    bookmarksBarVisible = load(STORAGE.bookmarksBar, false);
+    document.getElementById('search-engine').value = searchEngine;
+    if (bookmarksBarVisible) {
+        document.getElementById('bookmarks-bar').classList.add('visible');
+        document.getElementById('toggle-bookmarks').classList.add('on');
+    }
+}
+
+function loadData() {
+    tabs = load(STORAGE.tabs, []);
+    activeTabId = load(STORAGE.activeTab, null);
+    bookmarks = load(STORAGE.bookmarks, [
+        { title: 'Google',    url: 'https://www.google.com',  id: 'bm1' },
+        { title: 'YouTube',   url: 'https://www.youtube.com', id: 'bm2' },
+        { title: 'GitHub',    url: 'https://github.com',      id: 'bm3' }
+    ]);
+    history = load(STORAGE.history, []);
+    shortcuts = load(STORAGE.shortcuts, DEFAULT_SHORTCUTS);
+}
+
+function applyTheme() {
+    const saved = load(STORAGE.theme, 'auto');
+    let theme = saved;
+    if (saved === 'auto') {
+        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.theme === saved);
+    });
+}
+
+/* ============================================================
+   TABS MANAGEMENT
+   ============================================================ */
+function createTab(navigate = true) {
+    const tab = {
+        id: tabIdCounter++,
+        title: 'New Tab',
+        url: '',
+        history: [],
+        historyIndex: -1
+    };
+    tabs.push(tab);
+    activeTabId = tab.id;
+    saveTabs();
+    renderTabs();
+    if (navigate) loadTabContent(tab);
+    document.getElementById('omnibox').focus();
+}
+
+function closeTab(id, event) {
+    if (event) event.stopPropagation();
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+
+    // If last tab, replace with a new one
+    if (tabs.length === 1) {
+        tabs = [];
+        createTab(false);
+        return;
+    }
+
+    tabs.splice(idx, 1);
+    if (activeTabId === id) {
+        activeTabId = tabs[Math.min(idx, tabs.length - 1)].id;
+    }
+    saveTabs();
+    renderTabs();
+    const active = tabs.find(t => t.id === activeTabId);
+    loadTabContent(active);
+}
+
+function switchTab(id) {
+    activeTabId = id;
+    saveTabs();
+    renderTabs();
+    const tab = tabs.find(t => t.id === id);
+    loadTabContent(tab);
+}
+
+function saveTabs() {
+    // Only save minimal tab data
+    const minimal = tabs.map(t => ({ id: t.id, title: t.title, url: t.url, history: t.history, historyIndex: t.historyIndex }));
+    save(STORAGE.tabs, minimal);
+    save(STORAGE.activeTab, activeTabId);
+}
+
+function renderTabs() {
+    const container = document.getElementById('tabs');
+    container.innerHTML = '';
+    tabs.forEach(tab => {
+        const div = document.createElement('div');
+        div.className = 'tab' + (tab.id === activeTabId ? ' active' : '');
+        div.onclick = () => switchTab(tab.id);
+        div.title = tab.title;
+
+        const favicon = document.createElement('div');
+        favicon.className = 'favicon';
+        favicon.textContent = (tab.title[0] || '·').toUpperCase();
+        if (tab.url) {
+            try {
+                const host = new URL(tab.url).hostname.replace('www.', '');
+                favicon.textContent = host[0].toUpperCase();
+                favicon.style.background = stringToColor(host);
+            } catch (e) {}
+        }
+
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = tab.title;
+
+        const close = document.createElement('div');
+        close.className = 'close';
+        close.innerHTML = '×';
+        close.onclick = (e) => closeTab(tab.id, e);
+
+        div.appendChild(favicon);
+        div.appendChild(title);
+        div.appendChild(close);
+        container.appendChild(div);
+    });
+}
+
+function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - c.length) + c;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function loadTabContent(tab) {
+    const ntp = document.getElementById('ntp');
+    const page = document.getElementById('page');
+    const blocked = document.getElementById('blocked-notice');
+    const omnibox = document.getElementById('omnibox');
+
+    if (!tab || !tab.url) {
+        // New tab page
+        ntp.style.display = 'flex';
+        page.classList.remove('visible');
+        blocked.classList.remove('visible');
+        omnibox.value = '';
+        document.title = 'New Tab - ChromeClone';
     } else {
-      const body = new THREE.Mesh(geos.carBody, mats.car[Math.floor(Math.random() * 5)]);
-      body.position.y = 0.3; body.scale.set(1.8, 0.7, 1);
-      group.add(body);
-      const cabin = new THREE.Mesh(geos.carCabin, mats.carGlass);
-      cabin.position.set(-0.1, 0.7, 0); cabin.scale.set(1, 1, 1);
-      group.add(cabin);
-      size = 1.1;
-      mass = 15;
-      points = 30;
+        ntp.style.display = 'none';
+        omnibox.value = tab.url;
+        document.title = tab.title + ' - ChromeClone';
+
+        // Try to load in iframe
+        attemptLoad(tab.url);
     }
-  } else if (tier === 3) {
-    // Bigger cars / small buildings
-    if (Math.random() < 0.5) {
-      const body = new THREE.Mesh(geos.carBody, mats.car[Math.floor(Math.random() * 5)]);
-      body.position.y = 0.5; body.scale.set(3.5, 1, 1.8);
-      group.add(body);
-      const cabin = new THREE.Mesh(geos.carCabin, mats.carGlass);
-      cabin.position.set(-0.3, 1.3, 0); cabin.scale.set(1.6, 0.9, 0.8);
-      group.add(cabin);
-      size = 1.8;
-      mass = 35;
-      points = 60;
+    updateNavButtons();
+    updateSecurityIcon(tab.url);
+    updateBookmarkStar(tab.url);
+    renderShortcuts();
+}
+
+let loadTimeout = null;
+function attemptLoad(url) {
+    const page = document.getElementById('page');
+    const blocked = document.getElementById('blocked-notice');
+    const blockedText = document.getElementById('blocked-url-text');
+    const openReal = document.getElementById('open-real');
+
+    blocked.classList.remove('visible');
+    page.style.display = 'block';
+
+    // Check if URL is a search URL (those never embed)
+    const noEmbed = /google\.com\/search|bing\.com\/search|duckduckgo\.com\/\?|yandex\.com\/search/.test(url);
+
+    let loaded = false;
+
+    // Set iframe src
+    try {
+        page.src = url;
+    } catch (e) {
+        loaded = false;
+    }
+
+    page.onload = () => { loaded = true; clearTimeout(loadTimeout); };
+
+    clearTimeout(loadTimeout);
+    loadTimeout = setTimeout(() => {
+        if (!loaded || noEmbed) {
+            page.src = 'about:blank';
+            blocked.classList.add('visible');
+            page.classList.remove('visible');
+            blockedText.textContent = `"${url}" cannot be displayed inside ChromeClone. Many sites block embedding for security. Click below to open it in your real browser.`;
+            openReal.onclick = () => window.open(url, '_blank');
+        }
+    }, noEmbed ? 50 : 2500);
+}
+
+function navigate(input, tab = null) {
+    if (!input || !input.trim()) return;
+    const target = tab || tabs.find(t => t.id === activeTabId);
+    if (!target) return;
+
+    let url = input.trim();
+
+    // Detect URL vs search
+    const isURL = /^(https?:\/\/|www\.)/i.test(url) ||
+                  /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/|$|\?)/.test(url) ||
+                  /^localhost(:\d+)?/.test(url);
+
+    if (isURL) {
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     } else {
-      const w = 1.5 + Math.random() * 0.8;
-      const h = 2.5 + Math.random() * 1;
-      const d = 1.5 + Math.random() * 0.8;
-      const b = new THREE.Mesh(geos.buildingBox, mats.building[Math.floor(Math.random() * mats.building.length)]);
-      b.position.y = h / 2; b.scale.set(w, h, d);
-      group.add(b);
-      size = 2.0;
-      mass = 45;
-      points = 80;
+        url = SEARCH_ENGINES[searchEngine].url + encodeURIComponent(url);
     }
-  } else if (tier === 4) {
-    // Big buildings
-    const w = 2.5 + Math.random() * 1.5;
-    const h = 5 + Math.random() * 3;
-    const d = 2.5 + Math.random() * 1.5;
-    const b = new THREE.Mesh(geos.buildingBox, mats.building[Math.floor(Math.random() * mats.building.length)]);
-    b.position.y = h / 2; b.scale.set(w, h, d);
-    group.add(b);
-    size = 3.2;
-    mass = 110;
-    points = 200;
-  } else {
-    // Skyscraper
-    const w = 4 + Math.random() * 2;
-    const h = 10 + Math.random() * 5;
-    const d = 4 + Math.random() * 2;
-    const b = new THREE.Mesh(geos.buildingBox, mats.building[Math.floor(Math.random() * mats.building.length)]);
-    b.position.y = h / 2; b.scale.set(w, h, d);
-    group.add(b);
-    size = 5;
-    mass = 280;
-    points = 500;
-  }
 
-  // Random position (away from player start)
-  let x, z, tries = 0;
-  do {
-    x = (Math.random() - 0.5) * WORLD.size * 1.8;
-    z = (Math.random() - 0.5) * WORLD.size * 1.8;
-    tries++;
-  } while (Math.sqrt(x*x + z*z) < 10 && tries < 20);
+    target.url = url;
+    try {
+        target.title = new URL(url).hostname.replace('www.', '') || url;
+    } catch (e) {
+        target.title = url;
+    }
 
-  group.position.set(x, 0, z);
-  // Random rotation
-  group.rotation.y = Math.random() * Math.PI * 2;
+    // Update history
+    if (target.historyIndex < target.history.length - 1) {
+        target.history = target.history.slice(0, target.historyIndex + 1);
+    }
+    if (target.history[target.historyIndex] !== url) {
+        target.history.push(url);
+        target.historyIndex++;
+    }
 
-  scene.add(group);
-
-  return {
-    mesh: group,
-    x, z,
-    size, mass, points, tier,
-    vy: 0,
-    spin: 0,
-    spinning: false,
-    eaten: false,
-  };
+    addToHistory(url, target.title);
+    saveTabs();
+    renderTabs();
+    loadTabContent(target);
 }
 
-// Spawn initial objects
-for (let i = 0; i < MAX_OBJECTS; i++) {
-  objects.push(createRandomObject());
+function goBack() {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab || tab.historyIndex <= 0) return;
+    tab.historyIndex--;
+    tab.url = tab.history[tab.historyIndex];
+    try { tab.title = new URL(tab.url).hostname.replace('www.', ''); } catch(e) { tab.title = tab.url; }
+    saveTabs();
+    renderTabs();
+    loadTabContent(tab);
 }
 
-// ============ Player State ============
-const player = {
-  x: 0, z: 0,
-  vx: 0, vz: 0,
-  size: 0.7,
-  mass: 8,
-  speed: 14,
-  maxSize: 10,
-};
+function goForward() {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab || tab.historyIndex >= tab.history.length - 1) return;
+    tab.historyIndex++;
+    tab.url = tab.history[tab.historyIndex];
+    try { tab.title = new URL(tab.url).hostname.replace('www.', ''); } catch(e) { tab.title = tab.url; }
+    saveTabs();
+    renderTabs();
+    loadTabContent(tab);
+}
 
-// ============ Game State ============
-const game = {
-  mode: 'menu',
-  score: 0,
-  timeLeft: 90,
-  maxSizeReached: 0.7,
-  best: 0,
-  // Input
-  moveX: 0,
-  moveY: 0,
-  // Joystick
-  joyId: null,
-  joyCenterX: 0,
-  joyCenterY: 0,
-  joyCurX: 0,
-  joyCurY: 0,
-  joyMax: 70,
-  joyActive: false,
-  // Keyboard
-  keys: {},
-  // Effects
-  shake: 0,
-  tickTimer: 0,
-};
+function reloadTab() {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab || !tab.url) return;
+    const page = document.getElementById('page');
+    if (page.classList.contains('visible')) {
+        page.src = page.src;
+    } else {
+        loadTabContent(tab);
+    }
+    toast('Reloading...');
+}
 
-// Persistent best
-try {
-  const b = parseInt(localStorage.getItem('blackhole_best') || '0', 10);
-  if (!isNaN(b)) game.best = b;
-} catch(e){}
+function updateNavButtons() {
+    const tab = tabs.find(t => t.id === activeTabId);
+    const back = document.getElementById('btn-back');
+    const fwd = document.getElementById('btn-forward');
+    if (!tab) {
+        back.classList.add('disabled');
+        fwd.classList.add('disabled');
+        return;
+    }
+    back.classList.toggle('disabled', tab.historyIndex <= 0);
+    fwd.classList.toggle('disabled', tab.historyIndex >= tab.history.length - 1);
+}
 
-// ============ Input ============
-const canvasEl = document.getElementById('game');
+function updateSecurityIcon(url) {
+    const icon = document.getElementById('security-icon');
+    if (!url) {
+        icon.classList.remove('secure');
+        icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+        return;
+    }
+    if (url.startsWith('https://')) {
+        icon.classList.add('secure');
+        icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
+    } else {
+        icon.classList.remove('secure');
+        icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+    }
+}
 
-// Keyboard
-window.addEventListener('keydown', e => {
-  game.keys[e.code] = true;
+/* ============================================================
+   BOOKMARKS
+   ============================================================ */
+function toggleBookmark() {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab || !tab.url) { toast('Nothing to bookmark'); return; }
+
+    const exists = bookmarks.findIndex(b => b.url === tab.url);
+    if (exists >= 0) {
+        bookmarks.splice(exists, 1);
+        toast('Bookmark removed');
+    } else {
+        bookmarks.push({ id: 'bm' + Date.now(), title: tab.title || tab.url, url: tab.url });
+        toast('⭐ Bookmark added');
+    }
+    save(STORAGE.bookmarks, bookmarks);
+    renderBookmarksBar();
+    updateBookmarkStar(tab.url);
+}
+
+function updateBookmarkStar(url) {
+    const star = document.getElementById('btn-bookmark');
+    if (!url) { star.classList.remove('starred'); return; }
+    const exists = bookmarks.some(b => b.url === url);
+    star.classList.toggle('starred', exists);
+}
+
+function renderBookmarksBar() {
+    const bar = document.getElementById('bookmarks-bar');
+    bar.innerHTML = '';
+    bookmarks.forEach(bm => {
+        const el = document.createElement('div');
+        el.className = 'bookmark';
+        el.title = bm.url;
+        el.innerHTML = `<div class="favicon">${(bm.title[0] || '·').toUpperCase()}</div><span>${escapeHtml(bm.title)}</span>`;
+        el.onclick = () => navigate(bm.url);
+        bar.appendChild(el);
+    });
+}
+
+/* ============================================================
+   SHORTCUTS (NEW TAB)
+   ============================================================ */
+function renderShortcuts() {
+    const cont = document.getElementById('shortcuts');
+    cont.innerHTML = '';
+    shortcuts.forEach(sc => {
+        const el = document.createElement('div');
+        el.className = 'shortcut';
+        el.title = sc.url;
+        el.innerHTML = `<div class="icon" style="background:${sc.color}">${sc.initial}</div>
+                        <div class="label">${escapeHtml(sc.name)}</div>`;
+        el.onclick = () => navigate(sc.url);
+        cont.appendChild(el);
+    });
+}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+function addToHistory(url, title) {
+    history.unshift({ url, title, time: Date.now() });
+    if (history.length > 300) history = history.slice(0, 300);
+    save(STORAGE.history, history);
+}
+
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (!history.length) {
+        list.innerHTML = '<div class="history-empty">No history yet</div>';
+        return;
+    }
+    list.innerHTML = '';
+    history.slice(0, 100).forEach(h => {
+        const el = document.createElement('div');
+        el.className = 'history-item';
+        const time = new Date(h.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        el.innerHTML = `<div style="flex:1;min-width:0;">
+                            <div class="h-title">${escapeHtml(h.title)}</div>
+                            <div class="h-url">${escapeHtml(h.url)}</div>
+                        </div>
+                        <div class="h-time">${time}</div>`;
+        el.onclick = () => { navigate(h.url); document.getElementById('history-panel').classList.remove('open'); };
+        list.appendChild(el);
+    });
+}
+
+/* ============================================================
+   UI EVENTS
+   ============================================================ */
+function bindEvents() {
+    // OmniBox
+    const omnibox = document.getElementById('omnibox');
+    omnibox.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            navigate(omnibox.value);
+            omnibox.blur();
+        }
+    });
+    omnibox.addEventListener('focus', () => omnibox.select());
+
+    // NTP Search
+    const ntpSearch = document.getElementById('ntp-search');
+    ntpSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') navigate(ntpSearch.value);
+    });
+
+    // Nav buttons
+    document.getElementById('btn-back').onclick = goBack;
+    document.getElementById('btn-forward').onclick = goForward;
+    document.getElementById('btn-reload').onclick = reloadTab;
+    document.getElementById('btn-home').onclick = () => {
+        const tab = tabs.find(t => t.id === activeTabId);
+        if (tab) { tab.url = ''; tab.title = 'New Tab'; saveTabs(); renderTabs(); loadTabContent(tab); }
+    };
+    document.getElementById('btn-bookmark').onclick = toggleBookmark;
+    document.getElementById('new-tab-btn').onclick = () => createTab();
+
+    // Menu
+    document.getElementById('btn-menu').onclick = (e) => {
+        e.stopPropagation();
+        document.getElementById('menu-overlay').classList.toggle('open');
+    };
+    document.getElementById('menu-overlay').onclick = (e) => {
+        if (e.target.id === 'menu-overlay') {
+            document.getElementById('menu-overlay').classList.remove('open');
+        }
+    };
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.onclick = () => handleMenuAction(item.dataset.action);
+    });
+
+    // Profile
+    document.getElementById('profile-btn').onclick = () => {
+        openSettings();
+    };
+
+    // Extensions
+    document.getElementById('btn-extensions').onclick = () => {
+        toast('Extensions coming soon! 🔌');
+    };
+    document.getElementById('btn-share').onclick = () => {
+        const tab = tabs.find(t => t.id === activeTabId);
+        if (!tab || !tab.url) { toast('Nothing to share'); return; }
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(tab.url).then(() => toast('✔ URL copied to clipboard'));
+        } else {
+            toast(tab.url);
+        }
+    };
+
+    // Settings
+    document.getElementById('close-settings').onclick = closeSettings;
+    document.querySelectorAll('.theme-btn[data-theme]').forEach(b => {
+        b.onclick = () => {
+            save(STORAGE.theme, b.dataset.theme);
+            applyTheme();
+        };
+    });
+    document.getElementById('toggle-bookmarks').onclick = () => {
+        bookmarksBarVisible = !bookmarksBarVisible;
+        save(STORAGE.bookmarksBar, bookmarksBarVisible);
+        document.getElementById('bookmarks-bar').classList.toggle('visible', bookmarksBarVisible);
+        document.getElementById('toggle-bookmarks').classList.toggle('on', bookmarksBarVisible);
+    };
+    document.getElementById('search-engine').onchange = (e) => {
+        searchEngine = e.target.value;
+        save(STORAGE.engine, searchEngine);
+        toast('Search engine: ' + SEARCH_ENGINES[searchEngine].name);
+    };
+    document.getElementById('clear-history-btn').onclick = () => {
+        if (confirm('Clear all browsing history?')) {
+            history = [];
+            save(STORAGE.history, history);
+            renderHistory();
+            toast('History cleared');
+        }
+    };
+    document.getElementById('clear-bookmarks-btn').onclick = () => {
+        if (confirm('Delete all bookmarks?')) {
+            bookmarks = [];
+            save(STORAGE.bookmarks, bookmarks);
+            renderBookmarksBar();
+            updateBookmarkStar('');
+            toast('Bookmarks cleared');
+        }
+    };
+
+    // History panel
+    document.getElementById('close-history').onclick = () => {
+        document.getElementById('history-panel').classList.remove('open');
+    };
+
+    // Find bar
+    document.getElementById('close-find').onclick = () => {
+        document.getElementById('find-bar').classList.remove('open');
+    };
+    document.getElementById('find-input').addEventListener('input', (e) => {
+        findInPage(e.target.value);
+    });
+
+    // Toggles in settings
+    document.querySelectorAll('.toggle').forEach(t => {
+        if (!t.id) {
+            t.onclick = () => t.classList.toggle('on');
+        }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 't') { e.preventDefault(); createTab(); }
+            else if (e.key === 'w') { e.preventDefault(); closeTab(activeTabId); }
+            else if (e.key === 'l') { e.preventDefault(); document.getElementById('omnibox').focus(); }
+            else if (e.key === 'd') { e.preventDefault(); toggleBookmark(); }
+            else if (e.key === 'h') { e.preventDefault(); toggleHistory(); }
+            else if (e.key === 'f') { e.preventDefault(); toggleFind(); }
+            else if (e.key === 'r') { e.preventDefault(); reloadTab(); }
+            else if (e.key === 'Tab') {
+                e.preventDefault();
+                const idx = tabs.findIndex(t => t.id === activeTabId);
+                const next = (idx + 1) % tabs.length;
+                switchTab(tabs[next].id);
+            }
+        }
+        if (e.key === 'F5') { e.preventDefault(); reloadTab(); }
+        if (e.key === 'Escape') {
+            document.getElementById('menu-overlay').classList.remove('open');
+            closeSettings();
+            document.getElementById('history-panel').classList.remove('open');
+            document.getElementById('find-bar').classList.remove('open');
+        }
+    });
+
+    // Window controls (visual only)
+    document.querySelector('.win-btn.close').onclick = () => toast('Use browser ✕ to close tab');
+    document.querySelectorAll('.win-btn').forEach(b => {
+        b.onclick = () => toast('Desktop window controls are not available in browser');
+    });
+}
+
+function handleMenuAction(action) {
+    document.getElementById('menu-overlay').classList.remove('open');
+    switch(action) {
+        case 'new-tab': createTab(); break;
+        case 'new-window': window.open(location.href, '_blank'); break;
+        case 'history': toggleHistory(); break;
+        case 'bookmarks':
+            bookmarksBarVisible = !bookmarksBarVisible;
+            save(STORAGE.bookmarksBar, bookmarksBarVisible);
+            document.getElementById('bookmarks-bar').classList.toggle('visible', bookmarksBarVisible);
+            toast('Bookmarks bar ' + (bookmarksBarVisible ? 'shown' : 'hidden'));
+            break;
+        case 'find': toggleFind(); break;
+        case 'zoom-in': toast('Zoom in'); break;
+        case 'zoom-out': toast('Zoom out'); break;
+        case 'settings': openSettings(); break;
+        case 'about':
+            alert('ChromeClone v1.0.0\\n\\nA full browser UI replica.\\n\\nDeveloped by You\\n© 2024 - All Rights Reserved');
+            break;
+    }
+}
+
+function toggleHistory() {
+    const panel = document.getElementById('history-panel');
+    if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+    } else {
+        renderHistory();
+        panel.classList.add('open');
+    }
+}
+
+function toggleFind() {
+    const bar = document.getElementById('find-bar');
+    bar.classList.toggle('open');
+    if (bar.classList.contains('open')) {
+        document.getElementById('find-input').focus();
+    }
+}
+
+function findInPage(query) {
+    const info = document.getElementById('find-info');
+    if (!query) { info.textContent = '0/0'; return; }
+    // Limited: only searches within NTP; iframe is cross-origin
+    let count = 0;
+    try {
+        const ntp = document.getElementById('ntp');
+        if (ntp.style.display !== 'none') {
+            const text = ntp.innerText.toLowerCase();
+            const q = query.toLowerCase();
+            let i = 0;
+            while ((i = text.indexOf(q, i)) !== -1) { count++; i += q.length; }
+        }
+    } catch(e) {}
+    info.textContent = count ? `1/${count}` : '0/0';
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function openSettings() {
+    document.getElementById('settings-drawer').classList.add('open');
+}
+function closeSettings() {
+    document.getElementById('settings-drawer').classList.remove('open');
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.3s';
+        setTimeout(() => t.remove(), 300);
+    }, 2500);
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', init);
+
+// React to system theme changes when in auto mode
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (load(STORAGE.theme, 'auto') === 'auto') applyTheme();
 });
-window.addEventListener('keyup', e => {
-  game.keys[e.code] = false;
-});
 
-// Touch joystick (floating — appears where you touch)
-canvasEl.addEventListener('touchstart', e => {
-  if (game.mode !== 'playing') return;
-  e.preventDefault();
-  if (game.joyId !== null) return;
-  const t = e.changedTouches[0];
-  game.joyId = t.identifier;
-  game.joyCenterX = t.clientX;
-  game.joyCenterY = t.clientY;
-  game.joyCurX = t.clientX;
-  game.joyCurY = t.clientY;
-  game.joyActive = true;
-}, { passive: false });
-
-window.addEventListener('touchmove', e => {
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    if (t.identifier === game.joyId) {
-      let dx = t.clientX - game.joyCenterX;
-      let dy = t.clientY - game.joyCenterY;
-      const dist = Math.hypot(dx, dy);
-      if (dist > game.joyMax) {
-        dx = dx / dist * game.joyMax;
-        dy = dy / dist * game.joyMax;
-      }
-      game.joyCurX = game.joyCenterX + dx;
-      game.joyCurY = game.joyCenterY + dy;
-      game.moveX = dx / game.joyMax;
-      game.moveY = dy / game.joyMax;
-    }
-  }
-}, { passive: false });
-
-window.addEventListener('touchend', e => {
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    if (t.identifier === game.joyId) {
-      game.joyId = null;
-      game.joyActive = false;
-      game.moveX = 0;
-      game.moveY = 0;
-    }
-  }
-}, { passive: false });
-
-window.addEventListener('touchcancel', () => {
-  game.joyId = null;
-  game.joyActive = false;
-  game.moveX = 0;
-  game.moveY = 0;
-});
-
-// Mouse
-let mouseDown = false;
-canvasEl.addEventListener('mousedown', e => {
-  if (game.mode !== 'playing') return;
-  mouseDown = true;
-  game.joyCenterX = e.clientX;
-  game.joyCenterY = e.clientY;
-  game.joyCurX = e.clientX;
-  game.joyCurY = e.clientY;
-  game.joyActive = true;
-});
-window.addEventListener('mousemove', e => {
-  if (!mouseDown || game.mode !== 'playing') return;
-  let dx = e.clientX - game.joyCenterX;
-  let dy = e.clientY - game.joyCenterY;
-  const dist = Math.hypot(dx, dy);
-  if (dist > game.joyMax) {
-    dx = dx / dist * game.joyMax;
-    dy = dy / dist * game.joyMax;
-  }
-  game.joyCurX = game.joyCenterX + dx;
-  game.joyCurY = game.joyCenterY + dy;
-  game.moveX = dx / game.joyMax;
-  game.moveY = dy / game.joyMax;
-});
-window.addEventListener('mouseup', () => {
-  mouseDown = false;
-  game.joyActive = false;
-  game.moveX = 0;
-  game.moveY = 0;
-});
-
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('gesturestart', e => e.preventDefault());
-
-// ============ Camera Follow ============
-const cameraOffset = { x: 0, y: 24, z: 20 };
-
-function updateCamera(dt) {
-  // Camera pulls back as player grows
-  const camScale = 1 + (player.size - 0.7) * 0.15;
-  const targetX = player.x;
-  const targetY = 24 * camScale;
-  const targetZ = player.z + 20 * camScale;
-
-  // Smooth follow
-  camera.position.x += (targetX - camera.position.x) * Math.min(1, dt * 4);
-  camera.position.y += (targetY - camera.position.y) * Math.min(1, dt * 4);
-  camera.position.z += (targetZ - camera.position.z) * Math.min(1, dt * 4);
-
-  // Look at player (slightly ahead)
-  camera.lookAt(player.x, 0, player.z + 3);
-}
-
-// ============ Particle Update ============
-function updateParticles(dt) {
-  const pos = particleGeo.attributes.position.array;
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const p = particleData[i];
-    p.angle += p.speed * dt;
-    p.radius -= p.spinIn * dt;
-    if (p.radius < 0.4) {
-      p.radius = 1.5 + Math.random() * 3;
-      p.angle = Math.random() * Math.PI * 2;
-      p.height = (Math.random() - 0.5) * 1.5;
-    }
-    pos[i*3]     = player.x + Math.cos(p.angle) * p.radius * player.size;
-    pos[i*3 + 1] = p.height * player.size + player.size * 0.3;
-    pos[i*3 + 2] = player.z + Math.sin(p.angle) * p.radius * player.size;
-  }
-  particleGeo.attributes.position.needsUpdate = true;
-}
-
-// ============ Player Update ============
-function updatePlayer(dt) {
-  // Keyboard
-  let kx = 0, ky = 0;
-  if (game.keys['KeyW'] || game.keys['ArrowUp']) ky -= 1;
-  if (game.keys['KeyS'] || game.keys['ArrowDown']) ky += 1;
-  if (game.keys['KeyA'] || game.keys['ArrowLeft']) kx -= 1;
-  if (game.keys['KeyD'] || game.keys['ArrowRight']) kx += 1;
-
-  let mx = kx + game.moveX;
-  let my = ky + game.moveY;
-  const len = Math.hypot(mx, my);
-  if (len > 1) { mx /= len; my /= len; }
-
-  // Velocity
-  const targetVX = mx * player.speed;
-  const targetVZ = my * player.speed;
-  player.vx += (targetVX - player.vx) * Math.min(1, dt * 8);
-  player.vz += (targetVZ - player.vz) * Math.min(1, dt * 8);
-
-  player.x += player.vx * dt;
-  player.z += player.vz * dt;
-
-  // Clamp to world
-  const bound = WORLD.size * 0.95;
-  if (player.x < -bound) { player.x = -bound; player.vx = 0; }
-  if (player.x > bound) { player.x = bound; player.vx = 0; }
-  if (player.z < -bound) { player.z = -bound; player.vz = 0; }
-  if (player.z > bound) { player.z = bound; player.vz = 0; }
-
-  // Update black hole
-  blackHoleGroup.position.set(player.x, player.size * 0.3, player.z);
-  blackHoleGroup.scale.setScalar(player.size);
-
-  // Rotate rings
-  ring1.rotation.z += dt * 2;
-  ring2.rotation.y += dt * 1.5;
-  ring1.rotation.x = Math.PI / 2 + Math.sin(performance.now() * 0.001) * 0.1;
-
-  // Purple light follows player
-  purpleLight.position.set(player.x, player.size * 2, player.z);
-  purpleLight.intensity = 1.2 + Math.sin(performance.now() * 0.003) * 0.3;
-
-  // Camera
-  updateCamera(dt);
-
-  // Grow camera fog based on size
-  const fogEnd = 90 + player.size * 5;
-  scene.fog.near = 45 + player.size * 3;
-  scene.fog.far = fogEnd;
-}
-
-// ============ Objects Update ============
-const eaten = [];
-
-function updateObjects(dt) {
-  const particleEmit = [];
-  for (let i = 0; i < objects.length; i++) {
-    const obj = objects[i];
-    if (obj.eaten) continue;
-
-    const dx = player.x - obj.x;
-    const dz = player.z - obj.z;
-    const dist = Math.hypot(dx, dz);
-
-    // Suction field
-    const suctionRadius = player.size * 6 + 3;
-    if (dist < suctionRadius) {
-      const pull = (1 - dist / suctionRadius) * 30 * player.size;
-      const nx = dx / (dist || 1);
-      const nz = dz / (dist || 1);
-      obj.x += nx * pull * dt;
-      obj.z += nz * pull * dt;
-
-      // Spin effect
-      obj.spin += dt * 3 * (1 - dist / suctionRadius);
-    }
-
-    // Check if eaten
-    const eatRadius = player.size + obj.size * 0.4;
-    if (dist < eatRadius && obj.size < player.size * 1.4) {
-      eatObject(obj);
-      continue;
-    }
-
-    // Update mesh position
-    obj.mesh.position.x = obj.x;
-    obj.mesh.position.z = obj.z;
-    if (obj.spinning || obj.spin > 0.01) {
-      obj.mesh.rotation.y += obj.spin * dt;
-      obj.spin *= 0.96;
-    }
-  }
-}
-
-function eatObject(obj) {
-  obj.eaten = true;
-
-  // Score
-  game.score += obj.points;
-  updateHUDScore();
-
-  // Mass growth
-  player.mass += obj.mass;
-  const newSize = 0.5 + Math.pow(player.mass, 0.32) * 0.55;
-  const oldSize = player.size;
-  player.size = Math.min(player.maxSize, newSize);
-  if (player.size > game.maxSizeReached) game.maxSizeReached = player.size;
-
-  // Size upgrade banner
-  const oldTier = getSizeTier(oldSize);
-  const newTier = getSizeTier(player.size);
-  if (newTier > oldTier) {
-    showGrowBanner(newTier);
-    sfx.grow();
-    if (tg?.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){} }
-  } else {
-    sfx.eatSmall();
-  }
-
-  // Screen shake based on size
-  game.shake = Math.min(12, 3 + obj.size * 1.5);
-
-  // Particle burst
-  for (let k = 0; k < 6 + Math.floor(obj.size * 3); k++) {
-    particleEmit.push({ x: obj.x, z: obj.z });
-  }
-
-  // Eat popup
-  showEatPopup(obj.points, obj.x, obj.z);
-
-  // Remove from scene
-  scene.remove(obj.mesh);
-
-  // Respawn as new object
-  const newObj = createRandomObject();
-  objects[i] = newObj;
-}
-
-// Global variable for eaten respawn
-let i = 0; // temp
-
-function getSizeTier(size) {
-  if (size < 1.0) return 1;
-  if (size < 1.6) return 2;
-  if (size < 2.4) return 3;
-  if (size < 3.5) return 4;
-  if (size < 5.0) return 5;
-  return 6;
-}
-
-// ============ UI Effects ============
-function showGrowBanner(tier) {
-  const banner = document.getElementById('growBanner');
-  const labels = ['', '', 'كبرت!', 'أقوى!', 'وحش!', 'أسطورة!', 'إله!'];
-  banner.textContent = labels[tier] || 'كبرت!';
-  banner.classList.remove('show');
-  void banner.offsetWidth;
-  banner.classList.add('show');
-}
-
-function showEatPopup(points, worldX, worldZ) {
-  // Convert world to screen
-  const vec = new THREE.Vector3(worldX, 1, worldZ);
-  vec.project(camera);
-  const screenX = (vec.x * 0.5 + 0.5) * window.innerWidth;
-  const screenY = (-vec.y * 0.5 + 0.5) * window.innerHeight;
-
-  const el = document.createElement('div');
-  el.className = 'eatPopup';
-  el.textContent = '+' + points;
-  el.style.left = screenX + 'px';
-  el.style.top = screenY + 'px';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 700);
-}
-
-function updateHUDScore() {
-  document.getElementById('scoreVal').textContent = game.score;
-}
-
-function updateSizeHUD() {
-  document.getElementById('sizeVal').textContent = player.size.toFixed(1);
-}
-
-function updateTimeHUD() {
-  const t = Math.ceil(game.timeLeft);
-  document.getElementById('timeVal').textContent = t;
-  const pct = (game.timeLeft / 90) * 100;
-  document.getElementById('timeFill').style.width = pct + '%';
-  const bar = document.getElementById('timeBar');
-  if (game.timeLeft < 20) {
-    bar.classList.add('warn');
-    document.getElementById('lowTimeFlash').classList.add('show');
-  } else {
-    bar.classList.remove('warn');
-    document.getElementById('lowTimeFlash').classList.remove('show');
-  }
-}
-
-// ============ Joystick Visual ============
-let joyCanvasEl = null;
-function drawJoystick() {
-  if (!game.joyActive) return;
-  if (!joyCanvasEl) {
-    joyCanvasEl = document.createElement('canvas');
-    joyCanvasEl.id = 'joyCanvas';
-    joyCanvasEl.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9;';
-    document.body.appendChild(joyCanvasEl);
-  }
-  if (joyCanvasEl.width !== window.innerWidth) {
-    joyCanvasEl.width = window.innerWidth;
-    joyCanvasEl.height = window.innerHeight;
-  }
-  const ctx = joyCanvasEl.getContext('2d');
-  ctx.clearRect(0, 0, joyCanvasEl.width, joyCanvasEl.height);
-
-  const cx = game.joyCenterX;
-  const cy = game.joyCenterY;
-  const maxR = game.joyMax;
-
-  // Ring
-  ctx.strokeStyle = 'rgba(168,85,247,0.5)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Inner glow
-  const grd = ctx.createRadialGradient(cx, cy, 5, cx, cy, maxR);
-  grd.addColorStop(0, 'rgba(168,85,247,0.15)');
-  grd.addColorStop(1, 'rgba(168,85,247,0)');
-  ctx.fillStyle = grd;
-  ctx.beginPath();
-  ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Knob
-  ctx.fillStyle = 'rgba(192,132,252,0.85)';
-  ctx.beginPath();
-  ctx.arc(game.joyCurX, game.joyCurY, 22, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#a855f7';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-}
-
-// ============ Game Loop ============
-let lastTime = 0;
-
-function loop(now) {
-  requestAnimationFrame(loop);
-  if (!lastTime) { lastTime = now; return; }
-  let dt = (now - lastTime) / 1000;
-  lastTime = now;
-  if (dt > 0.05) dt = 0.05;
-
-  if (game.mode === 'playing') {
-    // Timer
-    game.timeLeft -= dt;
-    if (game.timeLeft <= 0) {
-      game.timeLeft = 0;
-      endGame();
-    }
-
-    // Tick sound for last 10 seconds
-    if (game.timeLeft < 10.5 && game.timeLeft > 0) {
-      game.tickTimer -= dt;
-      if (game.tickTimer <= 0) {
-        sfx.tick();
-        game.tickTimer = 1;
-      }
-    }
-
-    updatePlayer(dt);
-    updateObjects(dt);
-    updateParticles(dt);
-
-    // Shake
-    if (game.shake > 0) game.shake = Math.max(0, game.shake - dt * 30);
-
-    // Apply shake to camera
-    if (game.shake > 0) {
-      camera.position.x += (Math.random() - 0.5) * game.shake * 0.15;
-      camera.position.z += (Math.random() - 0.5) * game.shake * 0.15;
-    }
-
-    updateTimeHUD();
-    updateSizeHUD();
-    drawJoystick();
-  } else {
-    // Menu — slow orbit camera
-    const t = now * 0.0003;
-    camera.position.x = Math.cos(t) * 30;
-    camera.position.z = Math.sin(t) * 30 + 20;
-    camera.position.y = 22;
-    camera.lookAt(0, 2, 0);
-    updateParticles(dt);
-  }
-
-  renderer.render(scene, camera);
-}
-requestAnimationFrame(loop);
-
-// ============ Start / End ============
-function startGame() {
-  initAudio();
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  if (IS_TOUCH && screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock('landscape').catch(() => {});
-  }
-
-  // Reset player
-  player.x = 0; player.z = 0;
-  player.vx = 0; player.vz = 0;
-  player.size = 0.7;
-  player.mass = 8;
-  game.maxSizeReached = 0.7;
-
-  // Reset game
-  game.score = 0;
-  game.timeLeft = 90;
-  game.tickTimer = 0;
-  game.shake = 0;
-  game.moveX = 0;
-  game.moveY = 0;
-
-  // Reset objects
-  for (let k = 0; k < objects.length; k++) {
-    scene.remove(objects[k].mesh);
-    objects[k] = createRandomObject();
-  }
-
-  // Camera reset
-  camera.position.set(0, 24, 20);
-
-  document.getElementById('hud').classList.add('show');
-  document.getElementById('startScreen').classList.remove('show');
-  document.getElementById('overScreen').classList.remove('show');
-  document.getElementById('lowTimeFlash').classList.remove('show');
-
-  updateHUDScore();
-  updateSizeHUD();
-  updateTimeHUD();
-
-  game.mode = 'playing';
-}
-
-function endGame() {
-  game.mode = 'over';
-  sfx.end();
-  if (tg?.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred('error'); } catch(e){} }
-
-  const isNewRecord = game.score > game.best;
-  if (isNewRecord) {
-    game.best = game.score;
-    try { localStorage.setItem('blackhole_best', String(game.best)); } catch(e){}
-  }
-
-  document.getElementById('finalScore').textContent = game.score;
-  document.getElementById('finalSize').textContent = game.maxSizeReached.toFixed(1);
-  document.getElementById('newRecord').style.display = isNewRecord ? 'block' : 'none';
-  document.getElementById('overScreen').classList.add('show');
-  document.getElementById('hud').classList.remove('show');
-  document.getElementById('lowTimeFlash').classList.remove('show');
-
-  if (joyCanvasEl) {
-    const ctx = joyCanvasEl.getContext('2d');
-    ctx.clearRect(0, 0, joyCanvasEl.width, joyCanvasEl.height);
-  }
-}
-
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
-
-// ============ Resize ============
-function onResize() {
-  const w = window.innerWidth, h = window.innerHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-  updateRotateMsg();
-}
-window.addEventListener('resize', onResize);
-window.addEventListener('orientationchange', () => setTimeout(updateRotateMsg, 200));
-
-function updateRotateMsg() {
-  const isPortrait = window.innerHeight > window.innerWidth;
-  const msg = document.getElementById('rotateMsg');
-  if (IS_TOUCH && isPortrait && game.mode === 'menu') msg.classList.add('show');
-  else msg.classList.remove('show');
-}
-updateRotateMsg();
-
-// ============ Init ============
-camera.position.set(0, 24, 20);
-camera.lookAt(0, 2, 0);
-updateSizeHUD();
-
-console.log('🕳️ الثقب الأسود — جاهزة');
+console.log('%c⬢ ChromeClone v1.0', 'font-size:20px;font-weight:bold;background:linear-gradient(90deg,#4285F4,#EA4335,#FBBC04,#34A853);-webkit-background-clip:text;-webkit-text-fill-color:transparent;');
+console.log('%cDeveloped by You', 'color:#4285F4;font-weight:bold;font-size:14px;');
+console.log('%c© 2024 - All Rights Reserved', 'color:#888;font-size:12px;');
 </script>
 </body>
 </html>
