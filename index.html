@@ -11,20 +11,20 @@
 * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e8eef5; font-family:'Cairo', Tahoma, sans-serif; touch-action:none; }
 #game { position:absolute; inset:0; display:block; width:100%; height:100%; }
-#vignette { position:absolute; inset:0; pointer-events:none; z-index:8; background:radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.85) 100%); }
+#vignette { position:absolute; inset:0; pointer-events:none; z-index:8; background:radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.7) 100%); }
 #hud { position:absolute; inset:0; pointer-events:none; z-index:10; display:none; }
 #hud.show { display:block; }
 #crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:18px; height:18px; }
-#crosshair::before, #crosshair::after { content:''; position:absolute; background:rgba(255,80,80,0.9); box-shadow:0 0 5px rgba(255,80,80,0.8); }
+#crosshair::before, #crosshair::after { content:''; position:absolute; background:rgba(255,80,80,0.95); box-shadow:0 0 5px rgba(255,80,80,0.9); }
 #crosshair::before { top:50%; left:0; width:100%; height:1.5px; transform:translateY(-50%); }
 #crosshair::after { left:50%; top:0; width:1.5px; height:100%; transform:translateX(-50%); }
 #crosshair .dot { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:2.5px; height:2.5px; border-radius:50%; background:#fff; }
 #topInfo { position:absolute; top:12px; left:50%; transform:translateX(-50%); text-align:center; }
 #topInfo .wave { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:900; letter-spacing:3px; color:#ff4040; text-shadow:0 0 12px rgba(255,64,64,0.9); margin-bottom:4px; }
-#topInfo .score { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900; color:#fff; text-shadow:0 0 14px rgba(255,255,255,0.5); }
-#healthBox { position:absolute; bottom:18px; left:18px; width:180px; max-width:40vw; }
-#healthBox .lbl { font-size:9px; font-weight:900; letter-spacing:2px; color:#ff5050; margin-bottom:4px; }
-#healthBar { height:12px; background:rgba(0,0,0,0.7); border:1px solid rgba(180,30,30,0.7); border-radius:3px; overflow:hidden; }
+#topInfo .score { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900; color:#fff; text-shadow:0 0 14px rgba(255,255,255,0.6); }
+#healthBox { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); width:160px; }
+#healthBox .lbl { font-size:9px; font-weight:900; letter-spacing:2px; color:#ff5050; margin-bottom:4px; text-align:center; }
+#healthBar { height:10px; background:rgba(0,0,0,0.7); border:1px solid rgba(180,30,30,0.7); border-radius:3px; overflow:hidden; }
 #healthFill { height:100%; width:100%; background:linear-gradient(90deg,#c41010,#ff4040); transition:width 0.15s; }
 #ammoBox { position:absolute; bottom:18px; right:18px; text-align:left; direction:ltr; }
 #ammoBox .num { font-family:'Orbitron',sans-serif; font-size:34px; font-weight:900; color:#f5c518; line-height:1; text-shadow:0 0 16px rgba(245,197,24,0.7); }
@@ -32,19 +32,35 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
 #ammoBox .lbl { font-size:9px; font-weight:900; letter-spacing:3px; color:#8a8a8a; margin-top:2px; text-align:right; }
 #damageOverlay { position:absolute; inset:0; background:radial-gradient(circle at center, transparent 35%, rgba(200,0,0,0.85) 100%); opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:9; }
 #damageOverlay.flash { opacity:1; transition:opacity 0s; }
-#leftTouchArea { position:absolute; top:0; left:0; bottom:0; width:42%; z-index:18; display:none; touch-action:none; }
-#leftTouchArea.show { display:block; }
-#rightTouchArea { position:absolute; top:0; right:0; bottom:0; width:58%; z-index:18; display:none; touch-action:none; }
+
+/* Joystick ثابت */
+#joystickFixed {
+  position:absolute; bottom:25px; left:25px;
+  width:140px; height:140px; border-radius:50%;
+  background:rgba(255,255,255,0.05);
+  border:2px solid rgba(245,197,24,0.45);
+  pointer-events:auto; touch-action:none;
+  z-index:20; display:none;
+  box-shadow:0 0 30px rgba(245,197,24,0.15), inset 0 0 25px rgba(0,0,0,0.4);
+}
+#joystickFixed.show { display:block; }
+#joystickKnob {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:62px; height:62px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, rgba(255,230,100,0.95), rgba(200,160,20,0.85));
+  border:2px solid rgba(245,197,24,1);
+  box-shadow:0 0 22px rgba(245,197,24,0.7), inset 0 -3px 8px rgba(0,0,0,0.3);
+  pointer-events:none;
+}
+#rightTouchArea { position:absolute; top:0; right:0; bottom:0; width:60%; z-index:18; display:none; touch-action:none; }
 #rightTouchArea.show { display:block; }
-#floatingJoy { position:absolute; width:130px; height:130px; border-radius:50%; pointer-events:none; opacity:0; transition:opacity 0.12s; z-index:19; }
-#floatingJoy.active { opacity:1; }
-#floatingJoy .ring { position:absolute; inset:0; border-radius:50%; border:2px solid rgba(245,197,24,0.55); background:radial-gradient(circle, rgba(245,197,24,0.06) 0%, rgba(0,0,0,0.2) 100%); box-shadow:0 0 30px rgba(245,197,24,0.25), inset 0 0 20px rgba(245,197,24,0.08); }
-#floatingJoy .knob { position:absolute; width:58px; height:58px; border-radius:50%; background:radial-gradient(circle at 35% 35%, rgba(255,230,100,0.95), rgba(200,160,20,0.85)); border:2px solid rgba(245,197,24,1); top:50%; left:50%; transform:translate(-50%,-50%); box-shadow:0 0 22px rgba(245,197,24,0.8), inset 0 -3px 8px rgba(0,0,0,0.3); }
-.touchBtn { position:absolute; width:75px; height:75px; border-radius:50%; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.3); color:#fff; font-family:'Cairo', sans-serif; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1; pointer-events:auto; touch-action:none; }
+
+.touchBtn { position:absolute; width:75px; height:75px; border-radius:50%; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.3); color:#fff; font-family:'Cairo', sans-serif; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1; pointer-events:auto; touch-action:none; z-index:21; }
 .touchBtn:active { background:rgba(245,197,24,0.3); border-color:rgba(245,197,24,0.9); transform:scale(0.94); }
-#shootBtn { bottom:90px; right:22px; width:100px; height:100px; background:rgba(220,40,40,0.35); border-color:rgba(255,80,80,0.85); font-size:13px; z-index:21; }
-#jumpBtn { bottom:22px; right:135px; z-index:21; }
-#runBtn { bottom:110px; right:140px; width:65px; height:65px; font-size:10px; z-index:21; }
+#shootBtn { bottom:90px; right:22px; width:100px; height:100px; background:rgba(220,40,40,0.35); border-color:rgba(255,80,80,0.85); font-size:13px; }
+#jumpBtn { bottom:22px; right:135px; }
+#runBtn { bottom:110px; right:140px; width:65px; height:65px; font-size:10px; }
+
 .overlay { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; background:radial-gradient(circle at center, rgba(20,0,0,0.97), rgba(0,0,0,1)); z-index:30; padding:24px; text-align:center; overflow-y:auto; }
 .overlay.show { display:flex; }
 .title-horror { font-family:'Orbitron',sans-serif; font-size:58px; font-weight:900; letter-spacing:12px; color:#ff2020; line-height:1; margin-bottom:6px; text-shadow:0 0 10px rgba(255,0,0,0.9), 0 0 25px rgba(255,0,0,0.5); }
@@ -86,9 +102,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
 </div>
 
 <div id="hint">اضغط على الشاشة للتحكم</div>
-<div id="leftTouchArea"></div>
 <div id="rightTouchArea"></div>
-<div id="floatingJoy"><div class="ring"></div><div class="knob" id="joyKnob"></div></div>
+<div id="joystickFixed"><div id="joystickKnob"></div></div>
 
 <div class="touchBtn" id="shootBtn" style="display:none;">إطلاق</div>
 <div class="touchBtn" id="jumpBtn" style="display:none;">قفز</div>
@@ -99,8 +114,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
   <div class="subtitle-horror">الـــهـــروب</div>
   <div class="desc">
     أنت محبوس في مكان مظلم.<br><b>الأشباح قادمة...</b><br><br>
-    <b>كمبيوتر:</b> <span class="keys">WASD</span> حركة · <span class="keys">الماوس</span> نظر · <span class="keys">كليك</span> إطلاق<br><br>
-    <b>جوال:</b> الوضع الأفقي · المس النصف الأيسر → يظهر joystick
+    <b>كمبيوتر:</b> <span class="keys">WASD</span> · <span class="keys">الماوس</span> نظر · <span class="keys">كليك</span> إطلاق<br><br>
+    <b>جوال:</b> الوضع الأفقي · Joystick أسفل يسار
   </div>
   <button class="btn" id="startBtn">ابدأ اللعب</button>
 </div>
@@ -116,19 +131,17 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
 </div>
 
 <script>
-/* ATLAS v6 — Darker + Better Graphics + Fixed Joystick */
-
 const IS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-// ============ AUDIO ============
+// AUDIO
 let audioCtx = null;
 function initAudio() {
   if (audioCtx) return;
   try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 }
-function playNoise(dur, vol, filterType, freq, sweepTo) {
+function playNoise(dur, vol, ft, freq, sweepTo) {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
   const bs = Math.floor(audioCtx.sampleRate * dur);
@@ -137,7 +150,7 @@ function playNoise(dur, vol, filterType, freq, sweepTo) {
   for (let i = 0; i < bs; i++) d[i] = Math.random() * 2 - 1;
   const src = audioCtx.createBufferSource(); src.buffer = buf;
   const f = audioCtx.createBiquadFilter();
-  f.type = filterType || 'lowpass'; f.frequency.setValueAtTime(freq || 1000, t);
+  f.type = ft || 'lowpass'; f.frequency.setValueAtTime(freq || 1000, t);
   if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
   const g = audioCtx.createGain();
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -166,68 +179,68 @@ const sfx = {
   },
 };
 
-// ============ RENDERER ============
+// RENDERER
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-const pixelRatio = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 0.75 : 1.0);
+const pixelRatio = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 0.8 : 1.0);
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x030306, 1);
+renderer.setClearColor(0x0a0a12, 1);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x030306);
-scene.fog = new THREE.FogExp2(0x030306, 0.055);
+scene.background = new THREE.Color(0x0a0a12);
+scene.fog = new THREE.FogExp2(0x0a0a12, 0.035);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 1.6, 0);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 
-// ============ LIGHTING (مظلمة رعب) ============
-scene.add(new THREE.AmbientLight(0x151520, 0.35));
-scene.add(new THREE.HemisphereLight(0x203040, 0x050202, 0.2));
+// LIGHTING (أفتح بمرات)
+scene.add(new THREE.AmbientLight(0x606880, 0.7));
+scene.add(new THREE.HemisphereLight(0x8090b0, 0x201510, 0.5));
 
-const flashlight = new THREE.SpotLight(0xffe8c0, 2.6, 30, Math.PI / 5, 0.65, 1.5);
+const flashlight = new THREE.SpotLight(0xfff0d0, 3.5, 40, Math.PI / 4.5, 0.7, 1.3);
 flashlight.castShadow = false;
 scene.add(flashlight);
 scene.add(flashlight.target);
 
-// ضوء أحمر خافت من بعيد
-const farRed = new THREE.PointLight(0x400808, 0.6, 18);
+const warmLight = new THREE.DirectionalLight(0xffa060, 0.4);
+warmLight.position.set(5, 8, 5);
+scene.add(warmLight);
+
+const farRed = new THREE.PointLight(0x601010, 0.5, 20);
 farRed.position.set(0, 4, -18);
 scene.add(farRed);
 
-// ============ TEXTURES ============
+// TEXTURES
 function makeFloorTex() {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#2a2418'; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#3a3428'; g.fillRect(0, 0, 512, 512);
   const ts = 128;
   for (let y = 0; y < 512; y += ts) {
     for (let x = 0; x < 512; x += ts) {
-      const v = 38 + Math.random() * 18;
-      g.fillStyle = `rgb(${v + 12}, ${v + 4}, ${v - 8})`;
+      const v = 55 + Math.random() * 20;
+      g.fillStyle = `rgb(${v + 18}, ${v + 6}, ${v - 8})`;
       g.fillRect(x + 2, y + 2, ts - 4, ts - 4);
-      g.fillStyle = `rgba(255,255,255,0.02)`;
-      g.fillRect(x + 6, y + 6, ts - 12, 12);
+      g.fillStyle = `rgba(255,255,255,0.03)`;
+      g.fillRect(x + 6, y + 6, ts - 12, 14);
     }
   }
-  g.strokeStyle = '#080604'; g.lineWidth = 3;
+  g.strokeStyle = '#0a0806'; g.lineWidth = 3;
   for (let i = 0; i <= 4; i++) {
     g.beginPath(); g.moveTo(i * 128, 0); g.lineTo(i * 128, 512); g.stroke();
     g.beginPath(); g.moveTo(0, i * 128); g.lineTo(512, i * 128); g.stroke();
   }
-  for (let i = 0; i < 40; i++) {
-    g.strokeStyle = `rgba(0,0,0,${0.3 + Math.random() * 0.3})`;
+  for (let i = 0; i < 60; i++) {
+    g.strokeStyle = `rgba(0,0,0,${0.2 + Math.random() * 0.3})`;
     g.lineWidth = 0.5 + Math.random();
     g.beginPath();
     let x = Math.random() * 512, y = Math.random() * 512;
     g.moveTo(x, y);
-    for (let j = 0; j < 4; j++) {
-      x += (Math.random() - 0.5) * 40; y += (Math.random() - 0.5) * 40;
-      g.lineTo(x, y);
-    }
+    for (let j = 0; j < 4; j++) { x += (Math.random() - 0.5) * 40; y += (Math.random() - 0.5) * 40; g.lineTo(x, y); }
     g.stroke();
   }
   const tex = new THREE.CanvasTexture(c);
@@ -239,27 +252,23 @@ function makeWallTex() {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#2a2018'; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#3a2e22'; g.fillRect(0, 0, 512, 512);
   const bh = 32, bw = 64;
   for (let y = 0; y < 512; y += bh) {
     const off = ((y / bh) % 2) * (bw / 2);
     for (let x = -bw; x < 512; x += bw) {
-      const v = 40 + Math.random() * 20;
-      g.fillStyle = `rgb(${v + 18}, ${v + 8}, ${v - 2})`;
+      const v = 50 + Math.random() * 20;
+      g.fillStyle = `rgb(${v + 25}, ${v + 12}, ${v - 2})`;
       g.fillRect(x + off + 2, y + 2, bw - 4, bh - 4);
-      g.fillStyle = 'rgba(0,0,0,0.35)';
+      g.fillStyle = 'rgba(0,0,0,0.3)';
       g.fillRect(x + off + 2, y + bh - 6, bw - 4, 4);
-      g.fillStyle = 'rgba(255,220,180,0.06)';
+      g.fillStyle = 'rgba(255,220,180,0.08)';
       g.fillRect(x + off + 2, y + 2, bw - 4, 3);
     }
   }
   g.strokeStyle = '#0a0604'; g.lineWidth = 2;
   for (let y = 0; y <= 512; y += bh) {
     g.beginPath(); g.moveTo(0, y); g.lineTo(512, y); g.stroke();
-  }
-  for (let i = 0; i < 200; i++) {
-    g.fillStyle = `rgba(0,0,0,${Math.random() * 0.4})`;
-    g.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 2, 1 + Math.random() * 2);
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -270,9 +279,9 @@ function makeCeilTex() {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#0e0a06'; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#1a140e'; g.fillRect(0, 0, 512, 512);
   for (let x = 0; x < 512; x += 96) {
-    const v = 18 + Math.random() * 8;
+    const v = 25 + Math.random() * 10;
     g.fillStyle = `rgb(${v + 8}, ${v + 4}, ${v})`;
     g.fillRect(x, 0, 72, 512);
     for (let i = 0; i < 15; i++) {
@@ -287,16 +296,15 @@ function makeCeilTex() {
   return tex;
 }
 
-// ============ MATERIALS (Lambert = أسرع) ============
 const matFloor = new THREE.MeshLambertMaterial({ map: makeFloorTex() });
 const matWall = new THREE.MeshLambertMaterial({ map: makeWallTex() });
-const matWallDark = new THREE.MeshLambertMaterial({ map: makeWallTex(), color: 0x7a6a5a });
+const matWallDark = new THREE.MeshLambertMaterial({ map: makeWallTex(), color: 0xb0a090 });
 const matCeil = new THREE.MeshLambertMaterial({ map: makeCeilTex() });
-const matPillar = new THREE.MeshLambertMaterial({ color: 0x3a3028 });
-const matBone = new THREE.MeshLambertMaterial({ color: 0x9a9480 });
-const matBlood = new THREE.MeshLambertMaterial({ color: 0x4a0808 });
+const matPillar = new THREE.MeshLambertMaterial({ color: 0x504438 });
+const matBone = new THREE.MeshLambertMaterial({ color: 0xc8c0a8 });
+const matBlood = new THREE.MeshLambertMaterial({ color: 0x5a0808 });
 
-// ============ ARENA ============
+// ARENA
 const ARENA = { w: 50, d: 50, h: 5 };
 const halfW = ARENA.w / 2, halfD = ARENA.d / 2;
 const wallT = 0.6, wallH = ARENA.h;
@@ -328,52 +336,40 @@ function addInner(x, z, w, d) {
   scene.add(m);
   mazeWalls.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2 });
 }
-addInner(-10, -10, 7, 0.5);
-addInner(10, -10, 7, 0.5);
-addInner(-15, -15, 0.5, 7);
-addInner(15, -15, 0.5, 7);
-addInner(-15, 0, 0.5, 7);
-addInner(15, 0, 0.5, 7);
-addInner(-6, 5, 7, 0.5);
-addInner(6, 5, 7, 0.5);
-addInner(-15, 15, 0.5, 7);
-addInner(15, 15, 0.5, 7);
-addInner(-10, 10, 7, 0.5);
-addInner(10, 10, 7, 0.5);
+addInner(-10, -10, 7, 0.5); addInner(10, -10, 7, 0.5);
+addInner(-15, -15, 0.5, 7); addInner(15, -15, 0.5, 7);
+addInner(-15, 0, 0.5, 7); addInner(15, 0, 0.5, 7);
+addInner(-6, 5, 7, 0.5); addInner(6, 5, 7, 0.5);
+addInner(-15, 15, 0.5, 7); addInner(15, 15, 0.5, 7);
+addInner(-10, 10, 7, 0.5); addInner(10, 10, 7, 0.5);
 
-// أعمدة أسطوانية
 const pillarGeo = new THREE.CylinderGeometry(0.4, 0.4, wallH, 10);
 [[-5,-5],[5,-5],[-5,5],[5,5],[-12,-12],[12,-12],[-12,12],[12,12]].forEach(p => {
   const m = new THREE.Mesh(pillarGeo, matPillar);
-  m.position.set(p[0], wallH/2, p[1]);
-  scene.add(m);
+  m.position.set(p[0], wallH/2, p[1]); scene.add(m);
   mazeWalls.push({ minX: p[0]-0.4, maxX: p[0]+0.4, minZ: p[1]-0.4, maxZ: p[1]+0.4 });
 });
 
-// جماجم + دم
+// Decor
 const skullGeo = new THREE.SphereGeometry(0.22, 8, 6);
-const jawGeo = new THREE.BoxGeometry(0.18, 0.1, 0.24);
 const holeGeo = new THREE.SphereGeometry(0.06, 5, 4);
 const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 function addSkull(x, z) {
   const s = new THREE.Mesh(skullGeo, matBone);
   s.position.set(x, 0.22, z); s.scale.set(1, 0.9, 1.15); scene.add(s);
-  const j = new THREE.Mesh(jawGeo, matBone);
-  j.position.set(x, 0.05, z + 0.15); scene.add(j);
   const h1 = new THREE.Mesh(holeGeo, holeMat); h1.position.set(x - 0.08, 0.26, z + 0.18); scene.add(h1);
   const h2 = new THREE.Mesh(holeGeo, holeMat); h2.position.set(x + 0.08, 0.26, z + 0.18); scene.add(h2);
 }
 function addBlood(x, z) {
   const b = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random()*0.5, 10), matBlood);
-  b.rotation.x = -Math.PI/2; b.position.set(x, 0.02, z); b.rotation.z = Math.random() * Math.PI;
-  scene.add(b);
+  b.rotation.x = -Math.PI/2; b.position.set(x, 0.02, z); scene.add(b);
 }
 [[-13,-6],[-12,2],[-13,8],[-8,-12],[-3,-13],[8,-12],[12,-3],[13,6],[10,13],[3,13],[-6,12],[11,-11],[7,-7],[-7,7]].forEach((p,i) => {
   if (i % 2 === 0) addSkull(p[0], p[1]);
   else addBlood(p[0], p[1]);
 });
 
-// ============ AK-47 (محسّن - نسب واقعية) ============
+// AK-47
 const weaponGroup = new THREE.Group();
 camera.add(weaponGroup);
 weaponGroup.position.set(0.32, -0.28, -0.62);
@@ -381,137 +377,62 @@ weaponGroup.rotation.set(0.03, -0.08, 0);
 
 const matBlack = new THREE.MeshLambertMaterial({ color: 0x121214 });
 const matDark = new THREE.MeshLambertMaterial({ color: 0x1e1e22 });
-const matSteel = new THREE.MeshLambertMaterial({ color: 0x2e2e34 });
+const matSteel = new THREE.MeshLambertMaterial({ color: 0x3a3a44 });
 const matWood = new THREE.MeshLambertMaterial({ color: 0x6a4520 });
 const matWoodDark = new THREE.MeshLambertMaterial({ color: 0x4a2e12 });
 const matHand = new THREE.MeshLambertMaterial({ color: 0xb88868 });
 const matHandDark = new THREE.MeshLambertMaterial({ color: 0x8a6040 });
 
-// Body - receiver (صندوق معدني أساسي)
 const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.085, 0.45), matSteel);
 weaponGroup.add(receiver);
-
-// Dust cover (غطاء علوي أنسيابي)
 const dustCover = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.025, 0.4), matDark);
-dustCover.position.set(0, 0.055, -0.02);
-weaponGroup.add(dustCover);
-
-// Barrel (ماسورة طويلة)
+dustCover.position.set(0, 0.055, -0.02); weaponGroup.add(dustCover);
 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.62, 10), matSteel);
-barrel.rotation.x = Math.PI / 2;
-barrel.position.set(0, 0.02, -0.55);
-weaponGroup.add(barrel);
-
-// Gas tube (فوق الماسورة)
+barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.02, -0.55); weaponGroup.add(barrel);
 const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.38, 8), matDark);
-gasTube.rotation.x = Math.PI / 2;
-gasTube.position.set(0, 0.055, -0.46);
-weaponGroup.add(gasTube);
-
-// Front handguard (خشب أمامي)
+gasTube.rotation.x = Math.PI / 2; gasTube.position.set(0, 0.055, -0.46); weaponGroup.add(gasTube);
 const foreWood = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.075, 0.22), matWood);
-foreWood.position.set(0, 0.005, -0.32);
-weaponGroup.add(foreWood);
-
-// Upper handguard
+foreWood.position.set(0, 0.005, -0.32); weaponGroup.add(foreWood);
 const upWood = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.045, 0.18), matWoodDark);
-upWood.position.set(0, 0.055, -0.34);
-weaponGroup.add(upWood);
-
-// Magazine - banana (قطعتان بزاوية)
+upWood.position.set(0, 0.055, -0.34); weaponGroup.add(upWood);
 const mag1 = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.16, 0.095), matBlack);
-mag1.position.set(0, -0.13, -0.02);
-mag1.rotation.x = 0.2;
-weaponGroup.add(mag1);
-
+mag1.position.set(0, -0.13, -0.02); mag1.rotation.x = 0.2; weaponGroup.add(mag1);
 const mag2 = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.15, 0.095), matBlack);
-mag2.position.set(0, -0.26, -0.06);
-mag2.rotation.x = 0.5;
-weaponGroup.add(mag2);
-
-const magCap = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.02, 0.098), matDark);
-magCap.position.set(0, -0.33, -0.11);
-magCap.rotation.x = 0.5;
-weaponGroup.add(magCap);
-
-// Pistol grip (مقبض مسدس خشبي)
+mag2.position.set(0, -0.26, -0.06); mag2.rotation.x = 0.5; weaponGroup.add(mag2);
 const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.065), matWoodDark);
-grip.position.set(0, -0.12, 0.16);
-grip.rotation.x = -0.4;
-weaponGroup.add(grip);
-
-// Trigger
+grip.position.set(0, -0.12, 0.16); grip.rotation.x = -0.4; weaponGroup.add(grip);
 const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.04, 0.02), matSteel);
-trigger.position.set(0, -0.05, 0.09);
-weaponGroup.add(trigger);
-
-// Trigger guard
-const tGuard = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.005, 6, 12, Math.PI), matSteel);
-tGuard.rotation.x = Math.PI / 2;
-tGuard.position.set(0, -0.04, 0.09);
-weaponGroup.add(tGuard);
-
-// Stock (أخمص خشبي أنسيابي)
+trigger.position.set(0, -0.05, 0.09); weaponGroup.add(trigger);
 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.1, 0.28), matWood);
-stock.position.set(0, -0.04, 0.32);
-stock.rotation.x = 0.05;
-weaponGroup.add(stock);
-
-// Butt plate
+stock.position.set(0, -0.04, 0.32); stock.rotation.x = 0.05; weaponGroup.add(stock);
 const stockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.14, 0.035), matWoodDark);
-stockPlate.position.set(0, -0.05, 0.47);
-stockPlate.rotation.x = 0.05;
-weaponGroup.add(stockPlate);
-
-// Rear sight (منظار خلفي)
+stockPlate.position.set(0, -0.05, 0.47); stockPlate.rotation.x = 0.05; weaponGroup.add(stockPlate);
 const rearBase = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.02, 0.04), matDark);
-rearBase.position.set(0, 0.075, -0.08);
-weaponGroup.add(rearBase);
-const rearAperture = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.01), matBlack);
-rearAperture.position.set(0, 0.095, -0.08);
-weaponGroup.add(rearAperture);
-
-// Front sight (منظار أمامي)
+rearBase.position.set(0, 0.075, -0.08); weaponGroup.add(rearBase);
 const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.025), matSteel);
-frontSightBase.position.set(0, 0.062, -0.78);
-weaponGroup.add(frontSightBase);
+frontSightBase.position.set(0, 0.062, -0.78); weaponGroup.add(frontSightBase);
 const frontSightPost = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.03, 0.008), matBlack);
-frontSightPost.position.set(0, 0.085, -0.78);
-weaponGroup.add(frontSightPost);
-
-// Muzzle brake (نهاية الماسورة)
+frontSightPost.position.set(0, 0.085, -0.78); weaponGroup.add(frontSightPost);
 const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.021, 0.06, 10), matSteel);
-muzzle.rotation.x = Math.PI / 2;
-muzzle.position.set(0, 0.02, -0.88);
-weaponGroup.add(muzzle);
-
-// Hands (أيدي)
+muzzle.rotation.x = Math.PI / 2; muzzle.position.set(0, 0.02, -0.88); weaponGroup.add(muzzle);
 const hand1 = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.13, 0.1), matHand);
-hand1.position.set(0.005, -0.14, 0.15);
-hand1.rotation.x = -0.4;
-weaponGroup.add(hand1);
-
+hand1.position.set(0.005, -0.14, 0.15); hand1.rotation.x = -0.4; weaponGroup.add(hand1);
 const hand2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.14), matHandDark);
-hand2.position.set(-0.005, -0.105, -0.32);
-hand2.rotation.x = -0.1;
-weaponGroup.add(hand2);
+hand2.position.set(-0.005, -0.105, -0.32); hand2.rotation.x = -0.1; weaponGroup.add(hand2);
 
-// Muzzle flash
 const muzzleFlash = new THREE.Mesh(
   new THREE.PlaneGeometry(0.4, 0.4),
   new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
 );
-muzzleFlash.rotation.z = Math.PI / 4;
-muzzleFlash.position.set(0, 0.02, -0.92);
+muzzleFlash.rotation.z = Math.PI / 4; muzzleFlash.position.set(0, 0.02, -0.92);
 weaponGroup.add(muzzleFlash);
-
 const muzzleLight = new THREE.PointLight(0xffaa40, 0, 8);
 muzzleLight.position.set(0, 0.02, -0.92);
 weaponGroup.add(muzzleLight);
 
 const weapon = { recoil: 0 };
 
-// ============ PLAYER ============
+// PLAYER
 const player = {
   pos: new THREE.Vector3(0, 1.6, 0),
   vel: new THREE.Vector3(0, 0, 0),
@@ -523,12 +444,12 @@ const player = {
   bob: 0, stepTimer: 0, shake: 0,
 };
 
-// ============ INPUT ============
+// INPUT
 const input = {
   forward: false, backward: false, left: false, right: false,
   jump: false, run: false, shoot: false,
   mouseDX: 0, mouseDY: 0, locked: false,
-  joyX: 0, joyY: 0, joyId: null, joyStartX: 0, joyStartY: 0, joyMax: 58,
+  joyX: 0, joyY: 0, joyId: null, joyCenterX: 0, joyCenterY: 0, joyMax: 60,
   lookId: null, lookLastX: 0, lookLastY: 0,
   touchJump: false, touchRun: false, touchShoot: false,
 };
@@ -563,37 +484,34 @@ document.addEventListener('mousemove', e => {
 document.addEventListener('mousedown', e => { if (e.button === 0 && input.locked) input.shoot = true; });
 document.addEventListener('mouseup', e => { if (e.button === 0) input.shoot = false; });
 
-// ============ TOUCH ============
-const leftArea = document.getElementById('leftTouchArea');
-const rightArea = document.getElementById('rightTouchArea');
-const floatingJoy = document.getElementById('floatingJoy');
-const joyKnob = document.getElementById('joyKnob');
+// JOYSTICK (ثابت)
+const joystickFixed = document.getElementById('joystickFixed');
+const joystickKnob = document.getElementById('joystickKnob');
 
-leftArea.addEventListener('touchstart', e => {
+joystickFixed.addEventListener('touchstart', e => {
   e.preventDefault();
+  e.stopPropagation();
   if (input.joyId !== null) return;
   const t = e.changedTouches[0];
+  const rect = joystickFixed.getBoundingClientRect();
   input.joyId = t.identifier;
-  input.joyStartX = t.clientX;
-  input.joyStartY = t.clientY;
-  floatingJoy.style.left = (t.clientX - 65) + 'px';
-  floatingJoy.style.top = (t.clientY - 65) + 'px';
-  floatingJoy.classList.add('active');
-  joyKnob.style.transform = 'translate(-50%,-50%)';
-  input.joyX = 0; input.joyY = 0;
+  input.joyCenterX = rect.left + rect.width / 2;
+  input.joyCenterY = rect.top + rect.height / 2;
+  updateJoy(t.clientX, t.clientY);
 }, { passive: false });
 
-function updateJoy(touchX, touchY) {
-  let dx = touchX - input.joyStartX;
-  let dy = touchY - input.joyStartY;
+function updateJoy(tx, ty) {
+  let dx = tx - input.joyCenterX;
+  let dy = ty - input.joyCenterY;
   const dist = Math.hypot(dx, dy);
   if (dist > input.joyMax) { dx = dx / dist * input.joyMax; dy = dy / dist * input.joyMax; }
-  // ✅ FIX: نعكس Y — إصبع فوق (dy سالب) = أمام (joyY موجب)
-  input.joyX = dx / input.joyMax;
-  input.joyY = -dy / input.joyMax;
-  joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  input.joyX = dx / input.joyMax;   // right = positive
+  input.joyY = dy / input.joyMax;   // down = positive
+  joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 }
 
+// LOOK AREA
+const rightArea = document.getElementById('rightTouchArea');
 rightArea.addEventListener('touchstart', e => {
   e.preventDefault();
   if (input.lookId !== null) return;
@@ -620,15 +538,14 @@ window.addEventListener('touchend', e => {
     const t = e.changedTouches[i];
     if (t.identifier === input.joyId) {
       input.joyId = null; input.joyX = 0; input.joyY = 0;
-      floatingJoy.classList.remove('active');
+      joystickKnob.style.transform = 'translate(-50%,-50%)';
     }
     if (t.identifier === input.lookId) input.lookId = null;
   }
 }, { passive: false });
-
 window.addEventListener('touchcancel', () => {
   input.joyId = null; input.joyX = 0; input.joyY = 0;
-  floatingJoy.classList.remove('active');
+  joystickKnob.style.transform = 'translate(-50%,-50%)';
   input.lookId = null;
 });
 
@@ -641,7 +558,7 @@ bindBtn(document.getElementById('shootBtn'), 'touchShoot');
 bindBtn(document.getElementById('jumpBtn'), 'touchJump');
 bindBtn(document.getElementById('runBtn'), 'touchRun');
 
-// ============ COLLISION ============
+// COLLISION
 function collides(x, z) {
   const r = player.radius;
   if (x - r < -halfW + wallT/2 || x + r > halfW - wallT/2) return true;
@@ -653,13 +570,11 @@ function collides(x, z) {
   return false;
 }
 
-// ============ GHOST (billboard sprite - شكل شبح حقيقي) ============
+// GHOST TEXTURES
 function makeGhostTexture(hue) {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 320;
   const g = c.getContext('2d');
-
-  // جسم الشبح — تدرج شعاعي
   const cx = 128, cy = 140;
   const grd = g.createRadialGradient(cx, cy - 20, 20, cx, cy, 120);
   if (hue === 0) {
@@ -679,14 +594,9 @@ function makeGhostTexture(hue) {
     grd.addColorStop(1, 'rgba(20,30,70,0)');
   }
   g.fillStyle = grd;
-  g.beginPath();
-  g.arc(cx, cy, 105, 0, Math.PI * 2);
-  g.fill();
+  g.beginPath(); g.arc(cx, cy, 105, 0, Math.PI * 2); g.fill();
 
-  // الجسم السفلي (أطراف متدلية)
-  g.fillStyle = hue === 0 ? 'rgba(140,20,30,0.75)' :
-                hue === 1 ? 'rgba(80,30,110,0.75)' :
-                            'rgba(40,60,130,0.75)';
+  g.fillStyle = hue === 0 ? 'rgba(140,20,30,0.75)' : hue === 1 ? 'rgba(80,30,110,0.75)' : 'rgba(40,60,130,0.75)';
   for (let i = 0; i < 6; i++) {
     const x = 45 + i * 32;
     g.beginPath();
@@ -695,49 +605,29 @@ function makeGhostTexture(hue) {
     g.fill();
   }
 
-  // الظل الداخلي للفم/العيون
   const darkG = g.createRadialGradient(cx, cy + 10, 20, cx, cy + 10, 80);
   darkG.addColorStop(0, 'rgba(0,0,0,0.4)');
   darkG.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = darkG;
-  g.beginPath();
-  g.arc(cx, cy + 10, 80, 0, Math.PI * 2);
-  g.fill();
+  g.fillStyle = darkG; g.beginPath(); g.arc(cx, cy + 10, 80, 0, Math.PI * 2); g.fill();
 
-  // العيون — حمراء متوهجة
   g.save();
-  g.shadowColor = 'rgba(255,50,50,0.9)';
-  g.shadowBlur = 20;
+  g.shadowColor = 'rgba(255,50,50,0.9)'; g.shadowBlur = 20;
   g.fillStyle = 'rgba(255,60,60,1)';
-  g.beginPath();
-  g.arc(cx - 28, cy - 20, 11, 0, Math.PI * 2);
-  g.arc(cx + 28, cy - 20, 11, 0, Math.PI * 2);
-  g.fill();
+  g.beginPath(); g.arc(cx - 28, cy - 20, 11, 0, Math.PI * 2); g.arc(cx + 28, cy - 20, 11, 0, Math.PI * 2); g.fill();
   g.restore();
 
-  // الحدقة السوداء
   g.fillStyle = 'rgba(0,0,0,1)';
-  g.beginPath();
-  g.arc(cx - 28, cy - 20, 4, 0, Math.PI * 2);
-  g.arc(cx + 28, cy - 20, 4, 0, Math.PI * 2);
-  g.fill();
+  g.beginPath(); g.arc(cx - 28, cy - 20, 4, 0, Math.PI * 2); g.arc(cx + 28, cy - 20, 4, 0, Math.PI * 2); g.fill();
 
-  // الفم — خط داكن
   g.fillStyle = 'rgba(0,0,0,0.85)';
-  g.beginPath();
-  g.ellipse(cx, cy + 35, 18, 22, 0, 0, Math.PI * 2);
-  g.fill();
+  g.beginPath(); g.ellipse(cx, cy + 35, 18, 22, 0, 0, Math.PI * 2); g.fill();
 
   return new THREE.CanvasTexture(c);
 }
 
 const ghostTextures = [makeGhostTexture(0), makeGhostTexture(1), makeGhostTexture(2)];
 const ghostMatsSp = ghostTextures.map(t => new THREE.SpriteMaterial({
-  map: t,
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.NormalBlending,
-  color: 0xffffff,
+  map: t, transparent: true, depthWrite: false,
 }));
 
 const ghosts = [];
@@ -774,7 +664,7 @@ function killGhost(g) {
   g.dying = true; g.dyingT = 0;
   game.kills++; game.score += 10;
   updateHUD();
-  spawnParticles(g.x, 1.0, g.z, 0xc02030, 12);
+  spawnParticles(g.x, 1.4, g.z, 0xc02030, 12);
   const blood = new THREE.Mesh(new THREE.CircleGeometry(0.7 + Math.random()*0.4, 12), matBlood);
   blood.rotation.x = -Math.PI / 2; blood.position.set(g.x, 0.03, g.z);
   scene.add(blood);
@@ -807,17 +697,12 @@ function updateGhosts(dt) {
       g.x = Math.max(-halfW+1, Math.min(halfW-1, g.x));
       g.z = Math.max(-halfD+1, Math.min(halfD-1, g.z));
     }
-
     g.sprite.position.x = g.x;
     g.sprite.position.z = g.z;
     g.sprite.position.y = 1.4 + Math.sin(g.life * 2.5) * 0.18;
 
-    // Wiggle/pulse effect
     const pulse = 1 + Math.sin(g.life * 4) * 0.06;
-    const baseS = 2.2;
-    g.sprite.scale.set(baseS * pulse, baseS * 1.27 * pulse, 1);
-
-    // Opacity pulse for creepiness
+    g.sprite.scale.set(2.2 * pulse, 2.8 * pulse, 1);
     g.sprite.material.opacity = 0.75 + Math.sin(g.life * 3) * 0.15;
 
     g.attackCD -= dt;
@@ -825,7 +710,7 @@ function updateGhosts(dt) {
   }
 }
 
-// ============ WAVES ============
+// WAVES
 let wave = 1, waveSpawned = 0, waveTotal = 0, waveSpawnT = 0, waveDelayT = 0, waveActive = false;
 function startWave(n) {
   wave = n; game.wave = n; updateHUD();
@@ -857,10 +742,7 @@ function resetGhosts() {
   waveActive = false; waveDelayT = 0; waveSpawnT = 0;
 }
 
-// ============ BULLETS/PARTICLES ============
-const bullets = [];
-const bulletGeo = new THREE.SphereGeometry(0.08, 4, 3);
-const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffe070 });
+// PARTICLES
 const particles = [];
 const particleGeo = new THREE.PlaneGeometry(0.15, 0.15);
 function spawnParticles(x, y, z, color, count) {
@@ -886,35 +768,55 @@ function updateParticles(dt) {
     if (p.life <= 0) { scene.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1); }
   }
 }
+
+// BULLETS + SHOOT (فحص يدوي)
+const bullets = [];
+const bulletGeo = new THREE.SphereGeometry(0.08, 4, 3);
+const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffe070 });
 let ammo = 30, maxAmmo = 30, reloadT = 0, shootCD = 0;
 const SHOOT_RATE = 0.11;
+
 function shoot() {
   if (ammo <= 0) return;
   ammo--; updateHUD(); sfx.shoot();
   weapon.recoil = 1;
   muzzleFlash.material.opacity = 1;
   muzzleFlash.rotation.z = Math.random() * Math.PI;
-  muzzleLight.intensity = 3.5;
+  muzzleLight.intensity = 4;
+
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
   const origin = camera.position.clone().add(dir.clone().multiplyScalar(0.5));
-  const ghostSprites = ghosts.filter(g => !g.dying).map(g => g.sprite);
-  if (ghostSprites.length > 0) {
-    const ray = new THREE.Raycaster(origin, dir, 0, 60);
-    const hits = ray.intersectObjects(ghostSprites, false);
-    if (hits.length > 0) {
-      const g = ghosts.find(g => g.sprite === hits[0].object);
-      if (g && !g.dying) {
-        g.hp--;
-        spawnParticles(hits[0].point.x, hits[0].point.y, hits[0].point.z, 0xff3030, 6);
-        if (g.hp <= 0) killGhost(g);
-      }
+
+  // ✅ فحص يدوي — dot product
+  let closest = null, closestT = Infinity;
+  for (let i = 0; i < ghosts.length; i++) {
+    const g = ghosts[i];
+    if (g.dying) continue;
+    const gx = g.x - origin.x;
+    const gy = 1.4 - origin.y;
+    const gz = g.z - origin.z;
+    const dist = Math.sqrt(gx*gx + gy*gy + gz*gz);
+    if (dist > 50) continue;
+    const nx = gx / dist, ny = gy / dist, nz = gz / dist;
+    const dot = nx * dir.x + ny * dir.y + nz * dir.z;
+    if (dot > 0.90) {  // ~25 درجة
+      if (dist < closestT) { closestT = dist; closest = g; }
     }
   }
+
+  if (closest) {
+    closest.hp--;
+    spawnParticles(closest.x, 1.4, closest.z, 0xff3030, 8);
+    if (closest.hp <= 0) killGhost(closest);
+  }
+
+  // Bullet visual
   const bullet = new THREE.Mesh(bulletGeo, bulletMat);
   bullet.position.copy(origin); scene.add(bullet);
-  bullets.push({ mesh: bullet, pos: origin.clone(), vel: dir.clone().multiplyScalar(80), life: 0.28 });
+  bullets.push({ mesh: bullet, pos: origin.clone(), vel: dir.clone().multiplyScalar(90), life: 0.28 });
 }
+
 function updateBullets(dt) {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
@@ -922,13 +824,14 @@ function updateBullets(dt) {
     if (b.life <= 0) { scene.remove(b.mesh); bullets.splice(i, 1); }
   }
 }
+
 function updateShooting(dt) {
   shootCD -= dt;
   if ((input.shoot || input.touchShoot) && shootCD <= 0) { shoot(); shootCD = SHOOT_RATE; }
   if (ammo <= 0) { reloadT += dt; if (reloadT >= 1.0) { ammo = maxAmmo; reloadT = 0; updateHUD(); } } else reloadT = 0;
 }
 
-// ============ GAME ============
+// GAME
 const game = { running: false, score: 0, wave: 1, kills: 0, startTime: 0 };
 function updateHUD() {
   document.getElementById('healthFill').style.width = Math.max(0, player.health / player.maxHealth * 100) + '%';
@@ -956,9 +859,11 @@ function updatePlayer(dt) {
   if (input.backward) mz += 1;
   if (input.left) mx -= 1;
   if (input.right) mx += 1;
-  // ✅ FIX: joystick Y موجبة = أمام (لأن عكسنا في updateJoy)
+  // ✅ Joystick: joyX = right+, joyY = down+
+  // mx = joyX (right positive)
+  // mz = joyY (down positive = backward = +Z)
   mx += input.joyX;
-  mz -= input.joyY;
+  mz += input.joyY;
   const len = Math.hypot(mx, mz);
   if (len > 1) { mx /= len; mz /= len; }
 
@@ -1022,7 +927,7 @@ function updatePlayer(dt) {
   if (muzzleLight.intensity > 0) muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt * 28);
 }
 
-// ============ LOOP ============
+// LOOP
 let lastTime = 0, animId = null;
 const TARGET_DT = 1 / 60;
 function loop(now) {
@@ -1048,7 +953,6 @@ function loop(now) {
 }
 function startLoop() { if (animId !== null) return; lastTime = 0; animId = requestAnimationFrame(loop); }
 
-// ============ START/END ============
 function startGame() {
   initAudio();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -1065,14 +969,14 @@ function startGame() {
   player.bob = 0; player.stepTimer = 0; player.shake = 0;
   Object.keys(input).forEach(k => { if (typeof input[k] === 'boolean') input[k] = false; });
   input.joyX = 0; input.joyY = 0; input.mouseDX = 0; input.mouseDY = 0;
-  floatingJoy.classList.remove('active');
+  joystickKnob.style.transform = 'translate(-50%,-50%)';
   game.running = true; game.startTime = performance.now();
   game.score = 0; game.wave = 1; game.kills = 0;
   document.getElementById('startScreen').classList.remove('show');
   document.getElementById('overScreen').classList.remove('show');
   document.getElementById('hud').classList.add('show');
   if (IS_TOUCH) {
-    leftArea.classList.add('show');
+    joystickFixed.classList.add('show');
     rightArea.classList.add('show');
     document.getElementById('shootBtn').style.display = 'flex';
     document.getElementById('jumpBtn').style.display = 'flex';
@@ -1085,12 +989,11 @@ function startGame() {
 function endGame() {
   game.running = false;
   document.getElementById('hud').classList.remove('show');
-  leftArea.classList.remove('show');
+  joystickFixed.classList.remove('show');
   rightArea.classList.remove('show');
   document.getElementById('shootBtn').style.display = 'none';
   document.getElementById('jumpBtn').style.display = 'none';
   document.getElementById('runBtn').style.display = 'none';
-  floatingJoy.classList.remove('active');
   document.getElementById('hint').classList.remove('show');
   if (document.pointerLockElement) document.exitPointerLock();
   const elapsed = Math.floor((performance.now() - game.startTime) / 1000);
@@ -1121,7 +1024,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('dragstart', e => e.preventDefault());
 
 updateHUD(); startLoop();
-console.log('✅ ATLAS v6 — Fixed joystick + Sprite ghosts + Darker');
+console.log('✅ ATLAS v7');
 </script>
 </body>
 </html>
