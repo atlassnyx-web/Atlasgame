@@ -3,1674 +3,451 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChromeClone - By You</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234285F4'/><circle cx='50' cy='50' r='18' fill='white'/></svg>">
+<title>ATLAS COSMOS</title>
 <style>
-:root {
-    --bg-tabstrip: #dee1e6;
-    --bg-toolbar: #ffffff;
-    --bg-tab-active: #ffffff;
-    --bg-tab-inactive: transparent;
-    --bg-hover: #e8eaed;
-    --bg-hover-strong: #d6d9dd;
-    --text-primary: #202124;
-    --text-secondary: #5f6368;
-    --border: #dadce0;
-    --accent: #1a73e8;
-    --bg-content: #ffffff;
-    --bg-ntp: #f8f9fa;
-    --shadow-tab: 0 1px 3px rgba(0,0,0,0.15);
-    --bg-menus: #ffffff;
-}
-[data-theme="dark"] {
-    --bg-tabstrip: #202124;
-    --bg-toolbar: #292a2d;
-    --bg-tab-active: #35363a;
-    --bg-tab-inactive: transparent;
-    --bg-hover: #3c4043;
-    --bg-hover-strong: #4a4d51;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0a6;
-    --border: #3c4043;
-    --accent: #8ab4f8;
-    --bg-content: #202124;
-    --bg-ntp: #202124;
-    --shadow-tab: 0 1px 3px rgba(0,0,0,0.5);
-    --bg-menus: #292a2d;
-}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Consolas', 'Courier New', monospace; }
+  #universe { display: block; position: absolute; top: 0; left: 0; cursor: crosshair; }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+  .hud {
+    position: fixed; color: #00d4ff; font-size: 12px;
+    letter-spacing: 1.5px; z-index: 10; pointer-events: none;
+    text-shadow: 0 0 10px #00d4ffaa;
+    line-height: 1.8;
+  }
+  .hud.tl { top: 24px; left: 24px; }
+  .hud.tr { top: 24px; right: 24px; text-align: right; }
+  .hud.bl { bottom: 24px; left: 24px; }
+  .hud.br { bottom: 24px; right: 24px; text-align: right; }
+  .hud .label { color: #6b7280; font-size: 10px; }
+  .hud .value { color: #00ff88; font-weight: bold; }
+  .hud .accent { color: #7c3aed; }
 
-html, body {
-    height: 100%;
-    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-size: 13px;
-    background: var(--bg-toolbar);
-    color: var(--text-primary);
-    overflow: hidden;
-    user-select: none;
-    -webkit-font-smoothing: antialiased;
-}
-
-#app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-/* ============ TAB STRIP ============ */
-#tabstrip {
-    background: var(--bg-tabstrip);
-    display: flex;
-    align-items: flex-end;
-    height: 40px;
-    padding: 6px 8px 0 8px;
-    gap: 2px;
-    -webkit-app-region: drag;
-}
-#tabs {
-    display: flex;
-    align-items: flex-end;
-    flex: 1;
-    min-width: 0;
-    gap: 1px;
-    overflow: hidden;
-}
-.tab {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    height: 32px;
-    min-width: 60px;
-    max-width: 220px;
-    flex: 0 1 220px;
-    background: var(--bg-tab-inactive);
-    border-radius: 8px 8px 0 0;
-    cursor: pointer;
-    transition: background 0.15s;
-    position: relative;
-    overflow: hidden;
-    -webkit-app-region: no-drag;
-}
-.tab:hover { background: var(--bg-hover); }
-.tab.active {
-    background: var(--bg-tab-active);
-    box-shadow: var(--shadow-tab);
-    flex: 1 1 220px;
-}
-.tab .favicon {
-    width: 16px; height: 16px;
-    border-radius: 3px;
-    flex-shrink: 0;
-    background: var(--accent);
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 9px; font-weight: bold;
-}
-.tab .title {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 12px;
-    color: var(--text-primary);
-}
-.tab .close {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    line-height: 1;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-}
-.tab .close:hover { background: var(--bg-hover-strong); }
-.tab:not(.active):not(:hover) .close { opacity: 0; }
-
-#new-tab-btn {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: var(--text-primary);
-    font-size: 18px;
-    margin-bottom: 2px;
-    flex-shrink: 0;
-    -webkit-app-region: no-drag;
-}
-#new-tab-btn:hover { background: var(--bg-hover); }
-
-#window-controls {
-    display: flex;
-    gap: 2px;
-    margin-left: 8px;
-    -webkit-app-region: no-drag;
-}
-.win-btn {
-    width: 32px; height: 28px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    border-radius: 4px;
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-.win-btn:hover { background: var(--bg-hover); }
-.win-btn.close:hover { background: #e81123; color: white; }
-
-/* ============ TOOLBAR ============ */
-#toolbar {
-    background: var(--bg-toolbar);
-    display: flex;
-    align-items: center;
-    height: 40px;
-    padding: 0 8px;
-    gap: 4px;
-    border-bottom: 1px solid transparent;
-}
-.nav-btn {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: var(--text-primary);
-    flex-shrink: 0;
-    transition: background 0.15s;
-}
-.nav-btn:hover { background: var(--bg-hover); }
-.nav-btn.disabled { color: var(--text-secondary); opacity: 0.4; pointer-events: none; }
-.nav-btn svg { width: 18px; height: 18px; fill: currentColor; }
-
-#omnibox-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    background: var(--bg-hover);
-    border-radius: 20px;
-    height: 32px;
-    padding: 0 12px;
-    gap: 8px;
-    margin: 0 6px;
-    border: 1px solid transparent;
-    transition: background 0.15s, border 0.15s, box-shadow 0.15s;
-    min-width: 0;
-}
-#omnibox-wrap:focus-within {
-    background: var(--bg-toolbar);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
-}
-#security-icon {
-    width: 16px; height: 16px;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-}
-#security-icon.secure { color: #1e8e3e; }
-#omnibox {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-primary);
-    font-size: 13px;
-    font-family: inherit;
-    min-width: 0;
-}
-#omnibox::placeholder { color: var(--text-secondary); }
-.omnibox-action {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-}
-.omnibox-action:hover { background: var(--bg-hover-strong); }
-.omnibox-action svg { width: 14px; height: 14px; fill: currentColor; }
-.omnibox-action.starred { color: var(--accent); }
-.omnibox-action.starred svg { fill: currentColor; }
-
-#profile-btn {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #4285F4, #7C3AED);
-    color: white;
-    font-weight: 600;
-    font-size: 12px;
-    border: 2px solid transparent;
-}
-#profile-btn:hover { border-color: var(--accent); }
-
-/* ============ BOOKMARKS BAR ============ */
-#bookmarks-bar {
-    background: var(--bg-toolbar);
-    display: none;
-    align-items: center;
-    height: 34px;
-    padding: 0 8px;
-    gap: 2px;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-#bookmarks-bar.visible { display: flex; }
-#bookmarks-bar::-webkit-scrollbar { height: 0; }
-.bookmark {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--text-primary);
-    white-space: nowrap;
-    flex-shrink: 0;
-    max-width: 180px;
-    overflow: hidden;
-}
-.bookmark:hover { background: var(--bg-hover); }
-.bookmark .favicon {
-    width: 16px; height: 16px;
-    border-radius: 3px;
-    flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--accent);
-    color: white;
-    font-size: 9px;
-    font-weight: bold;
-}
-.bookmark span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* ============ CONTENT ============ */
-#content {
-    flex: 1;
-    position: relative;
-    background: var(--bg-content);
-    overflow: hidden;
-}
-
-/* New Tab Page */
-#ntp {
-    position: absolute;
-    inset: 0;
-    background: var(--bg-ntp);
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 60px 20px;
-}
-#ntp-logo {
-    font-size: 46px;
-    font-weight: 700;
-    letter-spacing: -1px;
-    margin-bottom: 32px;
-    background: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
-    -webkit-background-clip: text;
+  .title {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 120px; font-weight: 900;
+    letter-spacing: 40px;
+    background: linear-gradient(90deg, #00d4ff, #7c3aed, #00ff88);
+    -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    user-select: none;
-}
-#ntp-search-wrap {
-    width: 100%;
-    max-width: 580px;
-    display: flex;
-    align-items: center;
-    background: var(--bg-toolbar);
-    border-radius: 24px;
-    padding: 0 18px;
-    height: 48px;
-    gap: 12px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 6px rgba(32,33,36,0.10);
-    transition: box-shadow 0.2s;
-}
-#ntp-search-wrap:focus-within {
-    box-shadow: 0 1px 10px rgba(32,33,36,0.20);
-}
-#ntp-search-wrap svg { width: 20px; height: 20px; fill: var(--text-secondary); flex-shrink: 0; }
-#ntp-search {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-primary);
-    font-size: 15px;
-    font-family: inherit;
-}
-#ntp-search::placeholder { color: var(--text-secondary); }
+    z-index: 3; pointer-events: none;
+    opacity: 0.06; user-select: none;
+    animation: pulse 4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.04; letter-spacing: 40px; }
+    50% { opacity: 0.10; letter-spacing: 50px; }
+  }
 
-#shortcuts {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 112px);
-    gap: 8px;
-    margin-top: 42px;
-    justify-content: center;
-    max-width: 700px;
-    width: 100%;
-}
-.shortcut {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 14px 6px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-    gap: 10px;
-    position: relative;
-}
-.shortcut:hover { background: var(--bg-hover); }
-.shortcut .icon {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    font-weight: bold;
-    color: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
-.shortcut .label {
-    font-size: 12px;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100px;
-    text-align: center;
-}
+  .corner {
+    position: fixed; width: 28px; height: 28px;
+    border: 2px solid #00d4ff; z-index: 10;
+    pointer-events: none; opacity: 0.4;
+    animation: cornerPulse 3s ease-in-out infinite;
+  }
+  @keyframes cornerPulse { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+  .corner.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+  .corner.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+  .corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+  .corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
 
-#ntp-footer {
-    margin-top: auto;
-    padding-top: 60px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-#ntp-footer .avatar {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #4285F4, #7C3AED);
-    color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    font-weight: bold;
-}
-
-/* Page frame */
-#page {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: white;
-    display: none;
-}
-#page.visible { display: block; }
-
-#blocked-notice {
-    position: absolute;
-    inset: 0;
-    background: var(--bg-ntp);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
-    gap: 16px;
-}
-#blocked-notice.visible { display: flex; }
-#blocked-notice .icon { font-size: 56px; }
-#blocked-notice h2 { font-size: 20px; font-weight: 500; color: var(--text-primary); }
-#blocked-notice p { max-width: 500px; color: var(--text-secondary); line-height: 1.6; }
-#blocked-notice .btn {
-    padding: 10px 24px;
-    background: var(--accent);
-    color: white;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    font-family: inherit;
-    transition: box-shadow 0.2s;
-}
-#blocked-notice .btn:hover { box-shadow: 0 1px 3px rgba(60,64,67,0.3); }
-
-/* ============ MENU ============ */
-#menu-overlay {
-    position: fixed;
-    inset: 0;
-    display: none;
-    z-index: 1000;
-}
-#menu-overlay.open { display: block; }
-#main-menu {
-    position: absolute;
-    top: 88px;
-    right: 8px;
-    width: 300px;
-    background: var(--bg-menus);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.20);
-    padding: 8px 0;
-    animation: menuIn 0.15s ease-out;
-}
-@keyframes menuIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.menu-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    cursor: pointer;
-    font-size: 13px;
-    color: var(--text-primary);
-    gap: 12px;
-}
-.menu-item:hover { background: var(--bg-hover); }
-.menu-item .icon { width: 18px; text-align: center; opacity: 0.7; font-size: 14px; }
-.menu-item .shortcut-hint {
-    margin-left: auto;
-    color: var(--text-secondary);
-    font-size: 11px;
-}
-.menu-separator {
-    height: 1px;
-    background: var(--border);
-    margin: 6px 0;
-}
-.menu-header {
-    padding: 12px 16px 8px;
-    font-size: 11px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    font-weight: 600;
-}
-
-/* ============ SETTINGS DRAWER ============ */
-#settings-drawer {
-    position: fixed;
-    top: 0; right: 0; bottom: 0;
-    width: 380px;
-    background: var(--bg-menus);
-    box-shadow: -2px 0 16px rgba(0,0,0,0.20);
-    transform: translateX(100%);
-    transition: transform 0.25s ease;
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-}
-#settings-drawer.open { transform: translateX(0); }
-.settings-header {
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.settings-header h2 { font-size: 15px; font-weight: 500; }
-.settings-body { flex: 1; overflow-y: auto; padding: 8px 0; }
-.settings-section {
-    padding: 12px 20px;
-}
-.settings-section h3 {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-}
-.setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 0;
-    font-size: 13px;
-}
-.toggle {
-    width: 40px; height: 22px;
-    border-radius: 11px;
-    background: var(--bg-hover-strong);
-    position: relative;
-    cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
-}
-.toggle::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: white;
-    transition: transform 0.2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-.toggle.on { background: var(--accent); }
-.toggle.on::after { transform: translateX(18px); }
-.theme-btn-group { display: flex; gap: 4px; }
-.theme-btn {
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-primary);
-    font-family: inherit;
-}
-.theme-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-/* ============ FIND BAR ============ */
-#find-bar {
-    position: absolute;
-    top: 8px;
-    right: 16px;
-    background: var(--bg-menus);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.20);
-    border-radius: 6px;
-    padding: 8px 10px;
-    display: none;
-    align-items: center;
-    gap: 8px;
-    z-index: 500;
-}
-#find-bar.open { display: flex; }
-#find-input {
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-primary);
-    border-radius: 4px;
-    padding: 5px 10px;
-    font-size: 13px;
-    outline: none;
-    width: 200px;
-    font-family: inherit;
-}
-#find-input:focus { border-color: var(--accent); }
-
-/* ============ HISTORY PANEL ============ */
-#history-panel {
-    position: absolute;
-    top: 96px;
-    right: 16px;
-    width: 420px;
-    max-height: 500px;
-    background: var(--bg-menus);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.20);
-    display: none;
-    flex-direction: column;
-    z-index: 900;
-    overflow: hidden;
-}
-#history-panel.open { display: flex; }
-#history-panel .panel-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-#history-panel h3 { font-size: 14px; font-weight: 500; }
-#history-list { flex: 1; overflow-y: auto; max-height: 420px; }
-.history-item {
-    padding: 10px 18px;
-    cursor: pointer;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    font-size: 12px;
-    border-bottom: 1px solid var(--border);
-}
-.history-item:hover { background: var(--bg-hover); }
-.history-item .h-title { font-weight: 500; color: var(--text-primary); }
-.history-item .h-url { color: var(--text-secondary); font-size: 11px; }
-.history-item .h-time { color: var(--text-secondary); font-size: 11px; margin-left: auto; }
-.history-empty { padding: 30px; text-align: center; color: var(--text-secondary); font-size: 12px; }
-
-/* ============ TOAST ============ */
-#toast-container {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 5000;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.toast {
-    background: #323232;
-    color: white;
-    padding: 12px 18px;
-    border-radius: 6px;
-    font-size: 13px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    animation: toastIn 0.3s ease-out;
-    max-width: 340px;
-}
-@keyframes toastIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* ============ DOWNLOAD BAR ============ */
-#downloads-bar {
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    width: 340px;
-    background: var(--bg-menus);
-    border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-    padding: 14px 16px;
-    display: none;
-    align-items: center;
-    gap: 12px;
-    z-index: 400;
-}
-#downloads-bar.open { display: flex; }
-#downloads-bar .dl-info { flex: 1; }
-#downloads-bar .dl-name { font-size: 13px; font-weight: 500; }
-#downloads-bar .dl-status { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-
-/* Scrollbars */
-::-webkit-scrollbar { width: 12px; height: 12px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #a5a5a5; border-radius: 6px; border: 3px solid var(--bg-ntp); }
-::-webkit-scrollbar-thumb:hover { background: #808080; }
-
-/* responsive */
-@media (max-width: 700px) {
-    #shortcuts { grid-template-columns: repeat(auto-fill, 90px); }
-    .shortcut .icon { width: 42px; height: 42px; font-size: 18px; }
-    #settings-drawer { width: 100%; }
-    #history-panel { width: calc(100% - 32px); }
-}
+  .scanline {
+    position: fixed; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+    z-index: 20; pointer-events: none;
+    animation: scan 8s linear infinite;
+    opacity: 0.3;
+  }
+  @keyframes scan { 0%{transform:translateY(0)} 100%{transform:translateY(100vh)} }
 </style>
 </head>
 <body>
+<canvas id="universe"></canvas>
 
-<div id="app">
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+<div class="scanline"></div>
+<div class="title">ATLAS</div>
 
-    <!-- TAB STRIP -->
-    <div id="tabstrip">
-        <div id="tabs"></div>
-        <div id="new-tab-btn" title="New Tab (Ctrl+T)">
-            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        </div>
-        <div id="window-controls">
-            <div class="win-btn" title="Minimize">─</div>
-            <div class="win-btn" title="Maximize">□</div>
-            <div class="win-btn close" title="Close">✕</div>
-        </div>
-    </div>
-
-    <!-- TOOLBAR -->
-    <div id="toolbar">
-        <div class="nav-btn" id="btn-back" title="Back (Alt+←)">
-            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-        </div>
-        <div class="nav-btn" id="btn-forward" title="Forward (Alt+→)">
-            <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-        </div>
-        <div class="nav-btn" id="btn-reload" title="Reload (F5)">
-            <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        </div>
-        <div class="nav-btn" id="btn-home" title="Home (Alt+Home)">
-            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-        </div>
-
-        <div id="omnibox-wrap">
-            <div id="security-icon" title="Connection is secure">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-            </div>
-            <input type="text" id="omnibox" placeholder="Search Google or type a URL" autocomplete="off" spellcheck="false">
-            <div class="omnibox-action" id="btn-bookmark" title="Bookmark this tab (Ctrl+D)">
-                <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-            </div>
-            <div class="omnibox-action" id="btn-share" title="Share">
-                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
-            </div>
-        </div>
-
-        <div class="nav-btn" id="btn-extensions" title="Extensions">
-            <svg viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg>
-        </div>
-        <div class="nav-btn" id="btn-menu" title="Customize and control (Alt+F)">
-            <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-        </div>
-        <div id="profile-btn" title="You (Developer)">Y</div>
-    </div>
-
-    <!-- BOOKMARKS BAR -->
-    <div id="bookmarks-bar"></div>
-
-    <!-- CONTENT -->
-    <div id="content">
-        <!-- New Tab Page -->
-        <div id="ntp">
-            <div id="ntp-logo">ChromeClone</div>
-            <div id="ntp-search-wrap">
-                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" id="ntp-search" placeholder="Search the web" autocomplete="off">
-            </div>
-            <div id="shortcuts"></div>
-            <div id="ntp-footer">
-                <div class="avatar">Y</div>
-                <span>Developed by <strong>You</strong></span>
-            </div>
-        </div>
-
-        <!-- Real page (iframe) -->
-        <iframe id="page" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
-
-        <!-- Blocked notice -->
-        <div id="blocked-notice">
-            <div class="icon">🚫</div>
-            <h2>This site can't be embedded</h2>
-            <p id="blocked-url-text">Many sites (Google, YouTube, Facebook, etc.) block being displayed inside other sites for security reasons. Open it in a real browser tab instead.</p>
-            <button class="btn" id="open-real">Open in Real Browser</button>
-        </div>
-    </div>
-
+<div class="hud tl">
+  <div><span class="label">SYSTEM</span> <span class="value">ONLINE</span></div>
+  <div><span class="label">FPS</span> <span class="value" id="fps">60</span></div>
+  <div><span class="label">STARS</span> <span class="value" id="stars">800</span></div>
+  <div><span class="label">WARP</span> <span class="value" id="warp">0.0</span></div>
 </div>
 
-<!-- MENU OVERLAY -->
-<div id="menu-overlay">
-    <div id="main-menu">
-        <div class="menu-item" data-action="new-tab">
-            <span class="icon">+</span><span>New tab</span>
-            <span class="shortcut-hint">Ctrl+T</span>
-        </div>
-        <div class="menu-item" data-action="new-window">
-            <span class="icon">▢</span><span>New window</span>
-            <span class="shortcut-hint">Ctrl+N</span>
-        </div>
-        <div class="menu-item" data-action="history">
-            <span class="icon">🕘</span><span>History</span>
-            <span class="shortcut-hint">Ctrl+H</span>
-        </div>
-        <div class="menu-item" data-action="bookmarks">
-            <span class="icon">⭐</span><span>Bookmarks</span>
-            <span class="shortcut-hint">Ctrl+Shift+B</span>
-        </div>
-        <div class="menu-separator"></div>
-        <div class="menu-item" data-action="find">
-            <span class="icon">🔍</span><span>Find</span>
-            <span class="shortcut-hint">Ctrl+F</span>
-        </div>
-        <div class="menu-item" data-action="zoom-in">
-            <span class="icon">+</span><span>Zoom in</span>
-            <span class="shortcut-hint">Ctrl++</span>
-        </div>
-        <div class="menu-item" data-action="zoom-out">
-            <span class="icon">−</span><span>Zoom out</span>
-            <span class="shortcut-hint">Ctrl+-</span>
-        </div>
-        <div class="menu-separator"></div>
-        <div class="menu-item" data-action="settings">
-            <span class="icon">⚙</span><span>Settings</span>
-        </div>
-        <div class="menu-item" data-action="about">
-            <span class="icon">ℹ</span><span>About ChromeClone</span>
-        </div>
-        <div class="menu-separator"></div>
-        <div class="menu-header">Developed by You</div>
-    </div>
+<div class="hud tr">
+  <div><span class="label">TIME</span> <span class="value" id="time">--:--:--</span></div>
+  <div><span class="label">DATE</span> <span class="value" id="date">--/--/--</span></div>
+  <div><span class="label">SECTOR</span> <span class="value">ALPHA-01</span></div>
 </div>
 
-<!-- SETTINGS DRAWER -->
-<div id="settings-drawer">
-    <div class="settings-header">
-        <h2>⚙ Settings</h2>
-        <div class="nav-btn" id="close-settings" style="width:28px;height:28px;cursor:pointer;">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </div>
-    </div>
-    <div class="settings-body">
-        <div class="settings-section">
-            <h3>Appearance</h3>
-            <div class="setting-row">
-                <span>Theme</span>
-                <div class="theme-btn-group">
-                    <button class="theme-btn" data-theme="light">Light</button>
-                    <button class="theme-btn" data-theme="dark">Dark</button>
-                    <button class="theme-btn" data-theme="auto">Auto</button>
-                </div>
-            </div>
-            <div class="setting-row">
-                <span>Show bookmarks bar</span>
-                <div class="toggle" id="toggle-bookmarks"></div>
-            </div>
-        </div>
-        <div class="settings-section">
-            <h3>Search Engine</h3>
-            <div class="setting-row">
-                <span>Default engine</span>
-                <select id="search-engine" style="background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-family:inherit;outline:none;">
-                    <option value="google">Google</option>
-                    <option value="bing">Bing</option>
-                    <option value="ddg">DuckDuckGo</option>
-                    <option value="yandex">Yandex</option>
-                </select>
-            </div>
-        </div>
-        <div class="settings-section">
-            <h3>Privacy & Security</h3>
-            <div class="setting-row">
-                <span>Block third-party cookies</span>
-                <div class="toggle on"></div>
-            </div>
-            <div class="setting-row">
-                <span>Safe Browsing</span>
-                <div class="toggle on"></div>
-            </div>
-            <div class="setting-row">
-                <span>Do Not Track</span>
-                <div class="toggle"></div>
-            </div>
-        </div>
-        <div class="settings-section">
-            <h3>Data</h3>
-            <div class="setting-row">
-                <span>History</span>
-                <button class="theme-btn" id="clear-history-btn">Clear</button>
-            </div>
-            <div class="setting-row">
-                <span>Bookmarks</span>
-                <button class="theme-btn" id="clear-bookmarks-btn">Clear</button>
-            </div>
-        </div>
-        <div class="settings-section" style="margin-top:20px;padding-bottom:40px;text-align:center;color:var(--text-secondary);font-size:12px;">
-            <p>ChromeClone v1.0.0</p>
-            <p style="margin-top:6px;">Developed by <strong style="color:var(--accent);">You</strong></p>
-            <p style="margin-top:6px;opacity:0.6;">© 2024 - All Rights Reserved</p>
-        </div>
-    </div>
+<div class="hud bl">
+  <div><span class="accent">►</span> <span class="label">MOVE MOUSE TO NAVIGATE</span></div>
+  <div><span class="accent">►</span> <span class="label">CLICK TO WARP BURST</span></div>
+  <div><span class="accent">►</span> <span class="label">SCROLL TO CHANGE SPEED</span></div>
 </div>
 
-<!-- HISTORY PANEL -->
-<div id="history-panel">
-    <div class="panel-header">
-        <h3>🕘 History</h3>
-        <div class="nav-btn" id="close-history" style="width:28px;height:28px;cursor:pointer;">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </div>
-    </div>
-    <div id="history-list"></div>
+<div class="hud br">
+  <div><span class="label">© 2024</span> <span class="value">ATLAS</span></div>
+  <div><span class="label">COSMOS ENGINE v1.0</span></div>
 </div>
-
-<!-- FIND BAR -->
-<div id="find-bar">
-    <input type="text" id="find-input" placeholder="Find in page...">
-    <span id="find-info" style="font-size:11px;color:var(--text-secondary);">0/0</span>
-    <div class="nav-btn" style="width:24px;height:24px;" id="close-find">
-        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-    </div>
-</div>
-
-<!-- DOWNLOADS BAR -->
-<div id="downloads-bar">
-    <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;">⬇</div>
-    <div class="dl-info">
-        <div class="dl-name">Download started</div>
-        <div class="dl-status">Handled by your browser</div>
-    </div>
-</div>
-
-<!-- TOASTS -->
-<div id="toast-container"></div>
 
 <script>
-/* ============================================================
-   CHROMECLONE — Developed by You
-   ============================================================ */
+(function() {
+  'use strict';
 
-const STORAGE = {
-    tabs: 'cc_tabs',
-    activeTab: 'cc_active_tab',
-    theme: 'cc_theme',
-    bookmarks: 'cc_bookmarks',
-    bookmarksBar: 'cc_bookmarks_bar',
-    history: 'cc_history',
-    engine: 'cc_engine',
-    shortcuts: 'cc_shortcuts'
-};
+  const canvas = document.getElementById('universe');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, cx = 0, cy = 0;
 
-const SEARCH_ENGINES = {
-    google: { name: 'Google', url: 'https://www.google.com/search?q=' },
-    bing:   { name: 'Bing',   url: 'https://www.bing.com/search?q=' },
-    ddg:    { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=' },
-    yandex: { name: 'Yandex', url: 'https://yandex.com/search/?text=' }
-};
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    cx = W / 2;
+    cy = H / 2;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
-const DEFAULT_SHORTCUTS = [
-    { name: 'Google',    url: 'https://www.google.com',        color: '#4285F4', initial: 'G' },
-    { name: 'YouTube',   url: 'https://www.youtube.com',       color: '#FF0000', initial: '▶' },
-    { name: 'Gmail',     url: 'https://mail.google.com',       color: '#EA4335', initial: 'M' },
-    { name: 'GitHub',    url: 'https://github.com',            color: '#24292E', initial: 'G' },
-    { name: 'WhatsApp',  url: 'https://web.whatsapp.com',      color: '#25D366', initial: 'W' },
-    { name: 'Instagram', url: 'https://www.instagram.com',     color: '#E1306C', initial: 'I' },
-    { name: 'Twitter/X', url: 'https://twitter.com',           color: '#000000', initial: 'X' },
-    { name: 'Reddit',    url: 'https://www.reddit.com',        color: '#FF4500', initial: 'R' },
-    { name: 'Wikipedia', url: 'https://www.wikipedia.org',     color: '#000000', initial: 'W' },
-    { name: 'Stack Overflow', url: 'https://stackoverflow.com', color: '#F48024', initial: 'S' }
-];
+  // ============================================================
+  //                        STARS
+  // ============================================================
+  const STARS_COUNT = 900;
+  const stars = [];
 
-/* ============================================================
-   STATE
-   ============================================================ */
-let tabs = [];
-let activeTabId = null;
-let bookmarks = [];
-let history = [];
-let shortcuts = [];
-let bookmarksBarVisible = false;
-let searchEngine = 'google';
-let tabIdCounter = 1;
+  function starColor() {
+    const r = Math.random();
+    if (r < 0.68) return '#ffffff';
+    if (r < 0.85) return '#a8c8ff';
+    if (r < 0.95) return '#ffe4a8';
+    return '#ffb8e8';
+  }
 
-/* ============================================================
-   STORAGE HELPERS
-   ============================================================ */
-function load(key, fallback) {
-    try {
-        const v = localStorage.getItem(key);
-        return v ? JSON.parse(v) : fallback;
-    } catch (e) { return fallback; }
-}
-function save(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-}
-
-/* ============================================================
-   INITIALIZATION
-   ============================================================ */
-function init() {
-    loadSettings();
-    loadData();
-    applyTheme();
-
-    // Create first tab if none
-    if (tabs.length === 0) {
-        createTab(false);
-    } else {
-        renderTabs();
-        const active = tabs.find(t => t.id === activeTabId) || tabs[0];
-        activeTabId = active.id;
-        renderTabs();
-        loadTabContent(active);
-    }
-
-    renderBookmarksBar();
-    renderShortcuts();
-    bindEvents();
-    updateNavButtons();
-}
-
-function loadSettings() {
-    searchEngine = load(STORAGE.engine, 'google');
-    bookmarksBarVisible = load(STORAGE.bookmarksBar, false);
-    document.getElementById('search-engine').value = searchEngine;
-    if (bookmarksBarVisible) {
-        document.getElementById('bookmarks-bar').classList.add('visible');
-        document.getElementById('toggle-bookmarks').classList.add('on');
-    }
-}
-
-function loadData() {
-    tabs = load(STORAGE.tabs, []);
-    activeTabId = load(STORAGE.activeTab, null);
-    bookmarks = load(STORAGE.bookmarks, [
-        { title: 'Google',    url: 'https://www.google.com',  id: 'bm1' },
-        { title: 'YouTube',   url: 'https://www.youtube.com', id: 'bm2' },
-        { title: 'GitHub',    url: 'https://github.com',      id: 'bm3' }
-    ]);
-    history = load(STORAGE.history, []);
-    shortcuts = load(STORAGE.shortcuts, DEFAULT_SHORTCUTS);
-}
-
-function applyTheme() {
-    const saved = load(STORAGE.theme, 'auto');
-    let theme = saved;
-    if (saved === 'auto') {
-        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    document.documentElement.setAttribute('data-theme', theme);
-    document.querySelectorAll('.theme-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.theme === saved);
-    });
-}
-
-/* ============================================================
-   TABS MANAGEMENT
-   ============================================================ */
-function createTab(navigate = true) {
-    const tab = {
-        id: tabIdCounter++,
-        title: 'New Tab',
-        url: '',
-        history: [],
-        historyIndex: -1
+  function makeStar(initial) {
+    return {
+      x: (Math.random() - 0.5) * 2400,
+      y: (Math.random() - 0.5) * 2400,
+      z: initial ? Math.random() * 2000 + 1 : 2000,
+      size: Math.random() * 1.6 + 0.4,
+      color: starColor()
     };
-    tabs.push(tab);
-    activeTabId = tab.id;
-    saveTabs();
-    renderTabs();
-    if (navigate) loadTabContent(tab);
-    document.getElementById('omnibox').focus();
-}
+  }
 
-function closeTab(id, event) {
-    if (event) event.stopPropagation();
-    const idx = tabs.findIndex(t => t.id === id);
-    if (idx === -1) return;
+  for (let i = 0; i < STARS_COUNT; i++) stars.push(makeStar(true));
 
-    // If last tab, replace with a new one
-    if (tabs.length === 1) {
-        tabs = [];
-        createTab(false);
-        return;
+  // ============================================================
+  //                        PARTICLES
+  // ============================================================
+  const particles = [];
+
+  function spawn(x, y, burst) {
+    const n = burst ? 60 : 2;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = burst ? Math.random() * 8 + 2 : Math.random() * 1.2 + 0.3;
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(a) * spd,
+        vy: Math.sin(a) * spd,
+        life: 1,
+        decay: burst ? 0.012 : 0.035,
+        size: burst ? Math.random() * 3 + 1 : Math.random() * 1.8 + 0.4,
+        color: burst
+          ? (Math.random() < 0.5 ? '#00d4ff' : '#7c3aed')
+          : '#00ff88'
+      });
+    }
+    if (particles.length > 800) particles.splice(0, particles.length - 800);
+  }
+
+  // ============================================================
+  //                        INPUT
+  // ============================================================
+  let mouseX = 0, mouseY = 0;
+  let targetVX = 0, targetVY = 0;
+  let vx = 0, vy = 0;
+  let speed = 3;
+
+  window.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    targetVX = (e.clientX - cx) / cx;
+    targetVY = (e.clientY - cy) / cy;
+    spawn(e.clientX, e.clientY, false);
+  });
+
+  window.addEventListener('click', function(e) {
+    spawn(e.clientX, e.clientY, true);
+    for (let deg = 0; deg < 360; deg += 6) {
+      const a = deg * Math.PI / 180;
+      particles.push({
+        x: e.clientX, y: e.clientY,
+        vx: Math.cos(a) * 14,
+        vy: Math.sin(a) * 14,
+        life: 1, decay: 0.018,
+        size: 1.8, color: '#00d4ff'
+      });
+    }
+  });
+
+  window.addEventListener('touchmove', function(e) {
+    const t = e.touches[0];
+    targetVX = (t.clientX - cx) / cx;
+    targetVY = (t.clientY - cy) / cy;
+    spawn(t.clientX, t.clientY, false);
+  }, { passive: true });
+
+  window.addEventListener('touchstart', function(e) {
+    const t = e.touches[0];
+    spawn(t.clientX, t.clientY, true);
+  }, { passive: true });
+
+  window.addEventListener('wheel', function(e) {
+    speed += e.deltaY * -0.008;
+    speed = Math.max(0.3, Math.min(25, speed));
+  }, { passive: true });
+
+  // ============================================================
+  //                     WIREFRAME SPHERE
+  // ============================================================
+  const sphere = {
+    r: 130,
+    seg: 22,
+    rx: 0, ry: 0, rz: 0
+  };
+
+  function project(x, y, z) {
+    // Rotate X
+    const cosX = Math.cos(sphere.rx), sinX = Math.sin(sphere.rx);
+    const y1 = y * cosX - z * sinX;
+    const z1 = y * sinX + z * cosX;
+    // Rotate Y
+    const cosY = Math.cos(sphere.ry), sinY = Math.sin(sphere.ry);
+    const x2 = x * cosY + z1 * sinY;
+    const z2 = -x * sinY + z1 * cosY;
+    // Rotate Z
+    const cosZ = Math.cos(sphere.rz), sinZ = Math.sin(sphere.rz);
+    const x3 = x2 * cosZ - y1 * sinZ;
+    const y3 = x2 * sinZ + y1 * cosZ;
+
+    const persp = 520;
+    const sc = persp / (persp + z2);
+    return { x: x3 * sc, y: y3 * sc, z: z2 };
+  }
+
+  function drawSphere() {
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    sphere.ry += 0.006;
+    sphere.rx += 0.0025;
+    sphere.rz += 0.0035;
+
+    // Glow
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, sphere.r * 2.2);
+    g.addColorStop(0, 'rgba(0, 212, 255, 0.14)');
+    g.addColorStop(0.5, 'rgba(124, 58, 237, 0.06)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, sphere.r * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    const seg = sphere.seg;
+    ctx.lineWidth = 0.8;
+
+    // Latitude lines
+    for (let i = 1; i < seg; i++) {
+      const phi = (i / seg) * Math.PI;
+      const r = sphere.r * Math.sin(phi);
+      const y = sphere.r * Math.cos(phi);
+
+      ctx.beginPath();
+      for (let j = 0; j <= seg; j++) {
+        const theta = (j / seg) * Math.PI * 2;
+        const x = r * Math.cos(theta);
+        const z = r * Math.sin(theta);
+        const p = project(x, y, z);
+        if (j === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.strokeStyle = 'rgba(0, 212, 255, 0.30)';
+      ctx.stroke();
     }
 
-    tabs.splice(idx, 1);
-    if (activeTabId === id) {
-        activeTabId = tabs[Math.min(idx, tabs.length - 1)].id;
-    }
-    saveTabs();
-    renderTabs();
-    const active = tabs.find(t => t.id === activeTabId);
-    loadTabContent(active);
-}
+    // Longitude lines
+    for (let i = 0; i < seg; i++) {
+      const theta = (i / seg) * Math.PI * 2;
 
-function switchTab(id) {
-    activeTabId = id;
-    saveTabs();
-    renderTabs();
-    const tab = tabs.find(t => t.id === id);
-    loadTabContent(tab);
-}
-
-function saveTabs() {
-    // Only save minimal tab data
-    const minimal = tabs.map(t => ({ id: t.id, title: t.title, url: t.url, history: t.history, historyIndex: t.historyIndex }));
-    save(STORAGE.tabs, minimal);
-    save(STORAGE.activeTab, activeTabId);
-}
-
-function renderTabs() {
-    const container = document.getElementById('tabs');
-    container.innerHTML = '';
-    tabs.forEach(tab => {
-        const div = document.createElement('div');
-        div.className = 'tab' + (tab.id === activeTabId ? ' active' : '');
-        div.onclick = () => switchTab(tab.id);
-        div.title = tab.title;
-
-        const favicon = document.createElement('div');
-        favicon.className = 'favicon';
-        favicon.textContent = (tab.title[0] || '·').toUpperCase();
-        if (tab.url) {
-            try {
-                const host = new URL(tab.url).hostname.replace('www.', '');
-                favicon.textContent = host[0].toUpperCase();
-                favicon.style.background = stringToColor(host);
-            } catch (e) {}
-        }
-
-        const title = document.createElement('div');
-        title.className = 'title';
-        title.textContent = tab.title;
-
-        const close = document.createElement('div');
-        close.className = 'close';
-        close.innerHTML = '×';
-        close.onclick = (e) => closeTab(tab.id, e);
-
-        div.appendChild(favicon);
-        div.appendChild(title);
-        div.appendChild(close);
-        container.appendChild(div);
-    });
-}
-
-function stringToColor(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-    return '#' + '00000'.substring(0, 6 - c.length) + c;
-}
-
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
-function loadTabContent(tab) {
-    const ntp = document.getElementById('ntp');
-    const page = document.getElementById('page');
-    const blocked = document.getElementById('blocked-notice');
-    const omnibox = document.getElementById('omnibox');
-
-    if (!tab || !tab.url) {
-        // New tab page
-        ntp.style.display = 'flex';
-        page.classList.remove('visible');
-        blocked.classList.remove('visible');
-        omnibox.value = '';
-        document.title = 'New Tab - ChromeClone';
-    } else {
-        ntp.style.display = 'none';
-        omnibox.value = tab.url;
-        document.title = tab.title + ' - ChromeClone';
-
-        // Try to load in iframe
-        attemptLoad(tab.url);
-    }
-    updateNavButtons();
-    updateSecurityIcon(tab.url);
-    updateBookmarkStar(tab.url);
-    renderShortcuts();
-}
-
-let loadTimeout = null;
-function attemptLoad(url) {
-    const page = document.getElementById('page');
-    const blocked = document.getElementById('blocked-notice');
-    const blockedText = document.getElementById('blocked-url-text');
-    const openReal = document.getElementById('open-real');
-
-    blocked.classList.remove('visible');
-    page.style.display = 'block';
-
-    // Check if URL is a search URL (those never embed)
-    const noEmbed = /google\.com\/search|bing\.com\/search|duckduckgo\.com\/\?|yandex\.com\/search/.test(url);
-
-    let loaded = false;
-
-    // Set iframe src
-    try {
-        page.src = url;
-    } catch (e) {
-        loaded = false;
+      ctx.beginPath();
+      for (let j = 0; j <= seg; j++) {
+        const phi = (j / seg) * Math.PI;
+        const r = sphere.r * Math.sin(phi);
+        const y = sphere.r * Math.cos(phi);
+        const x = r * Math.cos(theta);
+        const z = r * Math.sin(theta);
+        const p = project(x, y, z);
+        if (j === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.strokeStyle = 'rgba(124, 58, 237, 0.30)';
+      ctx.stroke();
     }
 
-    page.onload = () => { loaded = true; clearTimeout(loadTimeout); };
+    // Center core
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#00d4ff';
+    ctx.shadowColor = '#00d4ff';
+    ctx.shadowBlur = 25;
+    ctx.fill();
+    ctx.shadowBlur = 0;
 
-    clearTimeout(loadTimeout);
-    loadTimeout = setTimeout(() => {
-        if (!loaded || noEmbed) {
-            page.src = 'about:blank';
-            blocked.classList.add('visible');
-            page.classList.remove('visible');
-            blockedText.textContent = `"${url}" cannot be displayed inside ChromeClone. Many sites block embedding for security. Click below to open it in your real browser.`;
-            openReal.onclick = () => window.open(url, '_blank');
-        }
-    }, noEmbed ? 50 : 2500);
-}
+    ctx.restore();
+  }
 
-function navigate(input, tab = null) {
-    if (!input || !input.trim()) return;
-    const target = tab || tabs.find(t => t.id === activeTabId);
-    if (!target) return;
+  // ============================================================
+  //                     DRAW STARS
+  // ============================================================
+  function drawStars() {
+    vx += (targetVX - vx) * 0.04;
+    vy += (targetVY - vy) * 0.04;
 
-    let url = input.trim();
+    const offX = vx * 320;
+    const offY = vy * 320;
 
-    // Detect URL vs search
-    const isURL = /^(https?:\/\/|www\.)/i.test(url) ||
-                  /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/|$|\?)/.test(url) ||
-                  /^localhost(:\d+)?/.test(url);
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      s.z -= speed;
 
-    if (isURL) {
-        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-    } else {
-        url = SEARCH_ENGINES[searchEngine].url + encodeURIComponent(url);
+      if (s.z <= 1) {
+        stars[i] = makeStar(false);
+        continue;
+      }
+
+      const k = 500 / s.z;
+      const sx = cx + (s.x + offX) * k;
+      const sy = cy + (s.y + offY) * k;
+
+      if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) continue;
+
+      const size = Math.max(0.3, s.size * k * 0.6);
+      const alpha = Math.min(1, (1 - s.z / 2000) * 1.4);
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = s.color;
+
+      // Draw trail lines for close stars
+      if (s.z < 200 && speed > 2) {
+        const prevK = 500 / (s.z + speed * 3);
+        const px = cx + (s.x + offX) * prevK;
+        const py = cy + (s.y + offY) * prevK;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = size;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(sx, sy, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ============================================================
+  //                     DRAW PARTICLES
+  // ============================================================
+  function drawParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.965;
+      p.vy *= 0.965;
+      p.life -= p.decay;
+
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+
+  // ============================================================
+  //                        MAIN LOOP
+  // ============================================================
+  let last = performance.now();
+  let frames = 0;
+  let fpsAcc = 0;
+
+  function loop(now) {
+    const dt = now - last;
+    last = now;
+
+    // Fade trail
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.fillRect(0, 0, W, H);
+
+    drawStars();
+    drawSphere();
+    drawParticles();
+
+    // FPS
+    frames++;
+    fpsAcc += dt;
+    if (fpsAcc >= 500) {
+      document.getElementById('fps').textContent = Math.round((frames * 1000) / fpsAcc);
+      frames = 0;
+      fpsAcc = 0;
     }
 
-    target.url = url;
-    try {
-        target.title = new URL(url).hostname.replace('www.', '') || url;
-    } catch (e) {
-        target.title = url;
-    }
+    document.getElementById('warp').textContent = speed.toFixed(1);
 
-    // Update history
-    if (target.historyIndex < target.history.length - 1) {
-        target.history = target.history.slice(0, target.historyIndex + 1);
-    }
-    if (target.history[target.historyIndex] !== url) {
-        target.history.push(url);
-        target.historyIndex++;
-    }
+    requestAnimationFrame(loop);
+  }
 
-    addToHistory(url, target.title);
-    saveTabs();
-    renderTabs();
-    loadTabContent(target);
-}
+  // ============================================================
+  //                        CLOCK
+  // ============================================================
+  function tick() {
+    const d = new Date();
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    document.getElementById('time').textContent =
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    document.getElementById('date').textContent =
+      pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+  tick();
+  setInterval(tick, 1000);
 
-function goBack() {
-    const tab = tabs.find(t => t.id === activeTabId);
-    if (!tab || tab.historyIndex <= 0) return;
-    tab.historyIndex--;
-    tab.url = tab.history[tab.historyIndex];
-    try { tab.title = new URL(tab.url).hostname.replace('www.', ''); } catch(e) { tab.title = tab.url; }
-    saveTabs();
-    renderTabs();
-    loadTabContent(tab);
-}
+  // ============================================================
+  //                        BOOT
+  // ============================================================
+  console.log('%c⬢ ATLAS COSMOS v1.0', 'font-size:22px;font-weight:900;color:#00d4ff;text-shadow:0 0 20px #00d4ff;');
+  console.log('%cMove mouse → fly  |  Click → warp burst  |  Scroll → speed', 'color:#00ff88;font-size:13px;');
+  console.log('%c© 2024 ATLAS', 'color:#6b7280;font-size:11px;');
 
-function goForward() {
-    const tab = tabs.find(t => t.id === activeTabId);
-    if (!tab || tab.historyIndex >= tab.history.length - 1) return;
-    tab.historyIndex++;
-    tab.url = tab.history[tab.historyIndex];
-    try { tab.title = new URL(tab.url).hostname.replace('www.', ''); } catch(e) { tab.title = tab.url; }
-    saveTabs();
-    renderTabs();
-    loadTabContent(tab);
-}
-
-function reloadTab() {
-    const tab = tabs.find(t => t.id === activeTabId);
-    if (!tab || !tab.url) return;
-    const page = document.getElementById('page');
-    if (page.classList.contains('visible')) {
-        page.src = page.src;
-    } else {
-        loadTabContent(tab);
-    }
-    toast('Reloading...');
-}
-
-function updateNavButtons() {
-    const tab = tabs.find(t => t.id === activeTabId);
-    const back = document.getElementById('btn-back');
-    const fwd = document.getElementById('btn-forward');
-    if (!tab) {
-        back.classList.add('disabled');
-        fwd.classList.add('disabled');
-        return;
-    }
-    back.classList.toggle('disabled', tab.historyIndex <= 0);
-    fwd.classList.toggle('disabled', tab.historyIndex >= tab.history.length - 1);
-}
-
-function updateSecurityIcon(url) {
-    const icon = document.getElementById('security-icon');
-    if (!url) {
-        icon.classList.remove('secure');
-        icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
-        return;
-    }
-    if (url.startsWith('https://')) {
-        icon.classList.add('secure');
-        icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
-    } else {
-        icon.classList.remove('secure');
-        icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
-    }
-}
-
-/* ============================================================
-   BOOKMARKS
-   ============================================================ */
-function toggleBookmark() {
-    const tab = tabs.find(t => t.id === activeTabId);
-    if (!tab || !tab.url) { toast('Nothing to bookmark'); return; }
-
-    const exists = bookmarks.findIndex(b => b.url === tab.url);
-    if (exists >= 0) {
-        bookmarks.splice(exists, 1);
-        toast('Bookmark removed');
-    } else {
-        bookmarks.push({ id: 'bm' + Date.now(), title: tab.title || tab.url, url: tab.url });
-        toast('⭐ Bookmark added');
-    }
-    save(STORAGE.bookmarks, bookmarks);
-    renderBookmarksBar();
-    updateBookmarkStar(tab.url);
-}
-
-function updateBookmarkStar(url) {
-    const star = document.getElementById('btn-bookmark');
-    if (!url) { star.classList.remove('starred'); return; }
-    const exists = bookmarks.some(b => b.url === url);
-    star.classList.toggle('starred', exists);
-}
-
-function renderBookmarksBar() {
-    const bar = document.getElementById('bookmarks-bar');
-    bar.innerHTML = '';
-    bookmarks.forEach(bm => {
-        const el = document.createElement('div');
-        el.className = 'bookmark';
-        el.title = bm.url;
-        el.innerHTML = `<div class="favicon">${(bm.title[0] || '·').toUpperCase()}</div><span>${escapeHtml(bm.title)}</span>`;
-        el.onclick = () => navigate(bm.url);
-        bar.appendChild(el);
-    });
-}
-
-/* ============================================================
-   SHORTCUTS (NEW TAB)
-   ============================================================ */
-function renderShortcuts() {
-    const cont = document.getElementById('shortcuts');
-    cont.innerHTML = '';
-    shortcuts.forEach(sc => {
-        const el = document.createElement('div');
-        el.className = 'shortcut';
-        el.title = sc.url;
-        el.innerHTML = `<div class="icon" style="background:${sc.color}">${sc.initial}</div>
-                        <div class="label">${escapeHtml(sc.name)}</div>`;
-        el.onclick = () => navigate(sc.url);
-        cont.appendChild(el);
-    });
-}
-
-/* ============================================================
-   HISTORY
-   ============================================================ */
-function addToHistory(url, title) {
-    history.unshift({ url, title, time: Date.now() });
-    if (history.length > 300) history = history.slice(0, 300);
-    save(STORAGE.history, history);
-}
-
-function renderHistory() {
-    const list = document.getElementById('history-list');
-    if (!history.length) {
-        list.innerHTML = '<div class="history-empty">No history yet</div>';
-        return;
-    }
-    list.innerHTML = '';
-    history.slice(0, 100).forEach(h => {
-        const el = document.createElement('div');
-        el.className = 'history-item';
-        const time = new Date(h.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        el.innerHTML = `<div style="flex:1;min-width:0;">
-                            <div class="h-title">${escapeHtml(h.title)}</div>
-                            <div class="h-url">${escapeHtml(h.url)}</div>
-                        </div>
-                        <div class="h-time">${time}</div>`;
-        el.onclick = () => { navigate(h.url); document.getElementById('history-panel').classList.remove('open'); };
-        list.appendChild(el);
-    });
-}
-
-/* ============================================================
-   UI EVENTS
-   ============================================================ */
-function bindEvents() {
-    // OmniBox
-    const omnibox = document.getElementById('omnibox');
-    omnibox.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            navigate(omnibox.value);
-            omnibox.blur();
-        }
-    });
-    omnibox.addEventListener('focus', () => omnibox.select());
-
-    // NTP Search
-    const ntpSearch = document.getElementById('ntp-search');
-    ntpSearch.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') navigate(ntpSearch.value);
-    });
-
-    // Nav buttons
-    document.getElementById('btn-back').onclick = goBack;
-    document.getElementById('btn-forward').onclick = goForward;
-    document.getElementById('btn-reload').onclick = reloadTab;
-    document.getElementById('btn-home').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) { tab.url = ''; tab.title = 'New Tab'; saveTabs(); renderTabs(); loadTabContent(tab); }
-    };
-    document.getElementById('btn-bookmark').onclick = toggleBookmark;
-    document.getElementById('new-tab-btn').onclick = () => createTab();
-
-    // Menu
-    document.getElementById('btn-menu').onclick = (e) => {
-        e.stopPropagation();
-        document.getElementById('menu-overlay').classList.toggle('open');
-    };
-    document.getElementById('menu-overlay').onclick = (e) => {
-        if (e.target.id === 'menu-overlay') {
-            document.getElementById('menu-overlay').classList.remove('open');
-        }
-    };
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.onclick = () => handleMenuAction(item.dataset.action);
-    });
-
-    // Profile
-    document.getElementById('profile-btn').onclick = () => {
-        openSettings();
-    };
-
-    // Extensions
-    document.getElementById('btn-extensions').onclick = () => {
-        toast('Extensions coming soon! 🔌');
-    };
-    document.getElementById('btn-share').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (!tab || !tab.url) { toast('Nothing to share'); return; }
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(tab.url).then(() => toast('✔ URL copied to clipboard'));
-        } else {
-            toast(tab.url);
-        }
-    };
-
-    // Settings
-    document.getElementById('close-settings').onclick = closeSettings;
-    document.querySelectorAll('.theme-btn[data-theme]').forEach(b => {
-        b.onclick = () => {
-            save(STORAGE.theme, b.dataset.theme);
-            applyTheme();
-        };
-    });
-    document.getElementById('toggle-bookmarks').onclick = () => {
-        bookmarksBarVisible = !bookmarksBarVisible;
-        save(STORAGE.bookmarksBar, bookmarksBarVisible);
-        document.getElementById('bookmarks-bar').classList.toggle('visible', bookmarksBarVisible);
-        document.getElementById('toggle-bookmarks').classList.toggle('on', bookmarksBarVisible);
-    };
-    document.getElementById('search-engine').onchange = (e) => {
-        searchEngine = e.target.value;
-        save(STORAGE.engine, searchEngine);
-        toast('Search engine: ' + SEARCH_ENGINES[searchEngine].name);
-    };
-    document.getElementById('clear-history-btn').onclick = () => {
-        if (confirm('Clear all browsing history?')) {
-            history = [];
-            save(STORAGE.history, history);
-            renderHistory();
-            toast('History cleared');
-        }
-    };
-    document.getElementById('clear-bookmarks-btn').onclick = () => {
-        if (confirm('Delete all bookmarks?')) {
-            bookmarks = [];
-            save(STORAGE.bookmarks, bookmarks);
-            renderBookmarksBar();
-            updateBookmarkStar('');
-            toast('Bookmarks cleared');
-        }
-    };
-
-    // History panel
-    document.getElementById('close-history').onclick = () => {
-        document.getElementById('history-panel').classList.remove('open');
-    };
-
-    // Find bar
-    document.getElementById('close-find').onclick = () => {
-        document.getElementById('find-bar').classList.remove('open');
-    };
-    document.getElementById('find-input').addEventListener('input', (e) => {
-        findInPage(e.target.value);
-    });
-
-    // Toggles in settings
-    document.querySelectorAll('.toggle').forEach(t => {
-        if (!t.id) {
-            t.onclick = () => t.classList.toggle('on');
-        }
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 't') { e.preventDefault(); createTab(); }
-            else if (e.key === 'w') { e.preventDefault(); closeTab(activeTabId); }
-            else if (e.key === 'l') { e.preventDefault(); document.getElementById('omnibox').focus(); }
-            else if (e.key === 'd') { e.preventDefault(); toggleBookmark(); }
-            else if (e.key === 'h') { e.preventDefault(); toggleHistory(); }
-            else if (e.key === 'f') { e.preventDefault(); toggleFind(); }
-            else if (e.key === 'r') { e.preventDefault(); reloadTab(); }
-            else if (e.key === 'Tab') {
-                e.preventDefault();
-                const idx = tabs.findIndex(t => t.id === activeTabId);
-                const next = (idx + 1) % tabs.length;
-                switchTab(tabs[next].id);
-            }
-        }
-        if (e.key === 'F5') { e.preventDefault(); reloadTab(); }
-        if (e.key === 'Escape') {
-            document.getElementById('menu-overlay').classList.remove('open');
-            closeSettings();
-            document.getElementById('history-panel').classList.remove('open');
-            document.getElementById('find-bar').classList.remove('open');
-        }
-    });
-
-    // Window controls (visual only)
-    document.querySelector('.win-btn.close').onclick = () => toast('Use browser ✕ to close tab');
-    document.querySelectorAll('.win-btn').forEach(b => {
-        b.onclick = () => toast('Desktop window controls are not available in browser');
-    });
-}
-
-function handleMenuAction(action) {
-    document.getElementById('menu-overlay').classList.remove('open');
-    switch(action) {
-        case 'new-tab': createTab(); break;
-        case 'new-window': window.open(location.href, '_blank'); break;
-        case 'history': toggleHistory(); break;
-        case 'bookmarks':
-            bookmarksBarVisible = !bookmarksBarVisible;
-            save(STORAGE.bookmarksBar, bookmarksBarVisible);
-            document.getElementById('bookmarks-bar').classList.toggle('visible', bookmarksBarVisible);
-            toast('Bookmarks bar ' + (bookmarksBarVisible ? 'shown' : 'hidden'));
-            break;
-        case 'find': toggleFind(); break;
-        case 'zoom-in': toast('Zoom in'); break;
-        case 'zoom-out': toast('Zoom out'); break;
-        case 'settings': openSettings(); break;
-        case 'about':
-            alert('ChromeClone v1.0.0\\n\\nA full browser UI replica.\\n\\nDeveloped by You\\n© 2024 - All Rights Reserved');
-            break;
-    }
-}
-
-function toggleHistory() {
-    const panel = document.getElementById('history-panel');
-    if (panel.classList.contains('open')) {
-        panel.classList.remove('open');
-    } else {
-        renderHistory();
-        panel.classList.add('open');
-    }
-}
-
-function toggleFind() {
-    const bar = document.getElementById('find-bar');
-    bar.classList.toggle('open');
-    if (bar.classList.contains('open')) {
-        document.getElementById('find-input').focus();
-    }
-}
-
-function findInPage(query) {
-    const info = document.getElementById('find-info');
-    if (!query) { info.textContent = '0/0'; return; }
-    // Limited: only searches within NTP; iframe is cross-origin
-    let count = 0;
-    try {
-        const ntp = document.getElementById('ntp');
-        if (ntp.style.display !== 'none') {
-            const text = ntp.innerText.toLowerCase();
-            const q = query.toLowerCase();
-            let i = 0;
-            while ((i = text.indexOf(q, i)) !== -1) { count++; i += q.length; }
-        }
-    } catch(e) {}
-    info.textContent = count ? `1/${count}` : '0/0';
-}
-
-/* ============================================================
-   SETTINGS
-   ============================================================ */
-function openSettings() {
-    document.getElementById('settings-drawer').classList.add('open');
-}
-function closeSettings() {
-    document.getElementById('settings-drawer').classList.remove('open');
-}
-
-/* ============================================================
-   TOAST
-   ============================================================ */
-function toast(msg) {
-    const c = document.getElementById('toast-container');
-    const t = document.createElement('div');
-    t.className = 'toast';
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => {
-        t.style.opacity = '0';
-        t.style.transition = 'opacity 0.3s';
-        setTimeout(() => t.remove(), 300);
-    }, 2500);
-}
-
-/* ============================================================
-   UTILS
-   ============================================================ */
-function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
-}
-
-/* ============================================================
-   BOOT
-   ============================================================ */
-window.addEventListener('DOMContentLoaded', init);
-
-// React to system theme changes when in auto mode
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (load(STORAGE.theme, 'auto') === 'auto') applyTheme();
-});
-
-console.log('%c⬢ ChromeClone v1.0', 'font-size:20px;font-weight:bold;background:linear-gradient(90deg,#4285F4,#EA4335,#FBBC04,#34A853);-webkit-background-clip:text;-webkit-text-fill-color:transparent;');
-console.log('%cDeveloped by You', 'color:#4285F4;font-weight:bold;font-size:14px;');
-console.log('%c© 2024 - All Rights Reserved', 'color:#888;font-size:12px;');
+  requestAnimationFrame(loop);
+})();
 </script>
 </body>
 </html>
