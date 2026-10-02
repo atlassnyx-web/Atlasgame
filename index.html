@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>فوج النيبة</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: #0f0f1a; color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { display: flex; flex-direction: column; }
+
+/* ===== الهيدر: فوج النيبة ===== */
+.header {
+  background: #16162a;
+  padding: 8px 12px;
+  text-align: center;
+  border-bottom: 1px solid #2a2a4a;
+}
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #f5c518;
+  letter-spacing: 1px;
+  text-shadow: 0 0 4px rgba(245,197,24,0.5), 0 0 8px rgba(245,197,24,0.3);
+  animation: glowPulse 2.4s ease-in-out infinite alternate;
+}
+@keyframes glowPulse {
+  from { text-shadow: 0 0 3px rgba(245,197,24,0.4), 0 0 7px rgba(245,197,24,0.2); opacity: 0.92; }
+  to   { text-shadow: 0 0 8px rgba(245,197,24,0.8), 0 0 16px rgba(245,197,24,0.4); opacity: 1; }
+}
+.stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.stats .score { color: #f5c518; }
+.stats .level { color: #4ade80; }
+
+/* ===== الكانفس ===== */
+#game-container { position: relative; flex: 1; overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* ===== الأزرار ===== */
+.controls {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: #16162a;
+  border-top: 1px solid #2a2a4a;
+}
+.btn {
+  flex: 1;
+  padding: 22px 0;
+  font-size: 32px;
+  font-weight: bold;
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.08s;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); filter: brightness(1.15); }
+.btn-left  { background: linear-gradient(180deg, #ef4444, #b91c1c); }
+.btn-right { background: linear-gradient(180deg, #3b82f6, #1d4ed8); }
+
+/* ===== شاشة النهاية ===== */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,10,20,0.94);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+  padding: 18px;
+  text-align: center;
+  overflow-y: auto;
+}
+.overlay.show { display: flex; }
+.overlay h1 { font-size: 26px; color: #ef4444; margin-bottom: 6px; }
+.overlay .final-score { font-size: 42px; font-weight: 800; color: #f5c518; margin: 8px 0 4px; text-shadow: 0 0 12px rgba(245,197,24,0.5); }
+.overlay .sub { font-size: 14px; color: #aaa; margin-bottom: 16px; }
+.overlay button {
+  padding: 14px 36px;
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(180deg, #f5c518, #d4a017);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+}
+.overlay button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+.overlay .btn-second { background: linear-gradient(180deg, #3b82f6, #1d4ed8); color: #fff; margin-top: -8px; }
+
+/* ===== لوحة المتصدرين المحلية ===== */
+.leaderboard {
+  width: 100%;
+  max-width: 320px;
+  background: #16162a;
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.leaderboard h3 { font-size: 16px; color: #f5c518; margin-bottom: 10px; text-shadow: 0 0 6px rgba(245,197,24,0.4); }
+.leaderboard ul { list-style: none; }
+.leaderboard li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-bottom: 1px solid #2a2a4a;
+  font-size: 14px;
+}
+.leaderboard li:last-child { border-bottom: none; }
+.leaderboard li .rank { color: #888; margin-left: 6px; }
+.leaderboard li .pts { color: #f5c518; font-weight: 700; }
+.leaderboard li.me { background: rgba(245,197,24,0.08); border-radius: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">فوج النيبة</div>
+  <div class="stats">
+    <div>النقاط: <span class="score" id="scoreDisplay">0</span></div>
+    <div>المستوى: <span class="level" id="levelDisplay">1</span></div>
+  </div>
+</div>
+
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
+  <div class="overlay" id="gameOverScreen">
+    <h1>انتهت اللعبة!</h1>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="sub">نقطة</div>
+    <button id="restartBtn">العب مرة أخرى 🔄</button>
+    <button class="btn-second" id="sendScoreBtn">أرسل نتيجتي للمجموعة 📤</button>
+    <div class="leaderboard">
+      <h3>🏆 أفضل اللاعبين (محلياً)</h3>
+      <ul id="leaderboardList"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-left" id="leftBtn">◀</button>
+  <button class="btn btn-right" id="rightBtn">▶</button>
+</div>
+
+<script>
+// ================== إعدادات تيليجرام ==================
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.expand();
+  tg.ready();
+  try { tg.setHeaderColor('#16162a'); } catch(e){}
+  try { tg.setBackgroundColor('#0f0f1a'); } catch(e){}
+}
+const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : { first_name: 'لاعب', id: 0 };
+const tgChat = (tg && tg.initDataUnsafe && tg.initDataUnsafe.chat) ? tg.initDataUnsafe.chat : null;
+
+// ================== إعداد اللعبة ==================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let canvasWidth, canvasHeight;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvasWidth = rect.width;
+  canvasHeight = rect.height;
+  canvas.width = canvasWidth * devicePixelRatio;
+  canvas.height = canvasHeight * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  car.y = canvasHeight - 110;
+}
+window.addEventListener('resize', resizeCanvas);
+
+// حالة اللعبة
+let gameState = 'playing';
+let score = 0;
+let level = 1;
+let speed = 3;
+const BASE_SPEED = 3;
+
+// السيارة
+const car = { x: 0, y: 0, width: 48, height: 78, lane: 1, targetX: 0 };
+let obstacles = [];
+let coins = [];
+let lastSpawnObstacle = 0;
+let lastSpawnCoin = 0;
+let gameStartTime = 0;
+
+function laneX(lane, objWidth) {
+  const laneW = canvasWidth / 3;
+  return lane * laneW + laneW / 2 - objWidth / 2;
+}
+
+function moveCar(dir) {
+  if (gameState !== 'playing') return;
+  const newLane = car.lane + dir;
+  if (newLane >= 0 && newLane <= 2) {
+    car.lane = newLane;
+    car.targetX = laneX(car.lane, car.width);
+  }
+}
+
+document.getElementById('leftBtn').addEventListener('click', () => moveCar(-1));
+document.getElementById('rightBtn').addEventListener('click', () => moveCar(1));
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft')  moveCar(-1);
+  if (e.key === 'ArrowRight') moveCar(1);
+});
+
+// ================== التوليد ==================
+function spawnObstacle() {
+  const lane = Math.floor(Math.random() * 3);
+  const size = 42;
+  obstacles.push({ x: laneX(lane, size), y: -size, width: size, height: size, lane });
+  // منع تراكم العقبات في نفس المسار فوق بعض
+  if (Math.random() < 0.4) {
+    const otherLane = [0,1,2].filter(l => l !== lane)[Math.floor(Math.random()*2)];
+    obstacles.push({ x: laneX(otherLane, size), y: -size - 130, width: size, height: size, lane: otherLane });
+  }
+}
+function spawnCoin() {
+  const lane = Math.floor(Math.random() * 3);
+  const size = 28;
+  const y = -size - Math.random() * 60;
+  coins.push({ x: laneX(lane, size), y: y, width: size, height: size, lane });
+  // سلسلة عملات أحياناً
+  if (Math.random() < 0.5) {
+    coins.push({ x: laneX(lane, size), y: y - 50, width: size, height: size, lane });
+    coins.push({ x: laneX(lane, size), y: y - 100, width: size, height: size, lane });
+  }
+}
+
+// ================== التحديث ==================
+function update(dt) {
+  if (gameState !== 'playing') return;
+
+  // حركة سلسة للسيارة
+  car.x += (car.targetX - car.x) * 0.28;
+
+  // المستوى والسرعة
+  level = Math.floor(score / 80) + 1;
+  speed = BASE_SPEED + (level - 1) * 0.45;
+
+  const now = performance.now();
+
+  // توليد العقبات
+  const obstacleInterval = Math.max(450, 1100 - level * 60);
+  if (now - lastSpawnObstacle > obstacleInterval) {
+    spawnObstacle();
+    lastSpawnObstacle = now;
+  }
+  // توليد العملات
+  if (now - lastSpawnCoin > 700) {
+    spawnCoin();
+    lastSpawnCoin = now;
+  }
+
+  // حركة العقبات
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    obstacles[i].y += speed;
+    if (obstacles[i].y > canvasHeight + 60) obstacles.splice(i, 1);
+  }
+  // حركة العملات
+  for (let i = coins.length - 1; i >= 0; i--) {
+    coins[i].y += speed;
+    if (coins[i].y > canvasHeight + 60) coins.splice(i, 1);
+  }
+
+  // تصادم
+  for (const obs of obstacles) {
+    if (car.x < obs.x + obs.width - 6 &&
+        car.x + car.width > obs.x + 6 &&
+        car.y < obs.y + obs.height - 6 &&
+        car.y + car.height > obs.y + 6) {
+      gameOver();
+      return;
+    }
+  }
+  // جمع العملات
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const c = coins[i];
+    if (car.x < c.x + c.width &&
+        car.x + car.width > c.x &&
+        car.y < c.y + c.height &&
+        car.y + car.height > c.y) {
+      score += 10;
+      coins.splice(i, 1);
+    }
+  }
+
+  // تحديث الواجهة
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('levelDisplay').textContent = level;
+}
+
+// ================== الرسم ==================
+function draw() {
+  // خلفية + خطوط الطريق
+  const grd = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+  grd.addColorStop(0, '#1a1a2e');
+  grd.addColorStop(1, '#0f0f1a');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  const laneW = canvasWidth / 3;
+  // خطوط الطريق
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([22, 22]);
+  ctx.lineDashOffset = -(performance.now() / 30) % 44;
+  ctx.beginPath();
+  ctx.moveTo(laneW, 0);     ctx.lineTo(laneW, canvasHeight);
+  ctx.moveTo(laneW * 2, 0); ctx.lineTo(laneW * 2, canvasHeight);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // السيارة
+  ctx.save();
+  ctx.shadowColor = '#ef4444';
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = '#ef4444';
+  roundRect(car.x, car.y, car.width, car.height, 10);
+  ctx.fill();
+  ctx.restore();
+  // زجاج
+  ctx.fillStyle = '#a8dadc';
+  roundRect(car.x + 8, car.y + 14, car.width - 16, 20, 5);
+  ctx.fill();
+  // عجلات
+  ctx.fillStyle = '#000';
+  ctx.fillRect(car.x - 4, car.y + 12, 8, 16);
+  ctx.fillRect(car.x + car.width - 4, car.y + 12, 8, 16);
+  ctx.fillRect(car.x - 4, car.y + 50, 8, 16);
+  ctx.fillRect(car.x + car.width - 4, car.y + 50, 8, 16);
+
+  // العقبات (أحجار)
+  for (const obs of obstacles) {
+    ctx.save();
+    ctx.shadowColor = '#f59e0b';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = '#f59e0b';
+    roundRect(obs.x, obs.y, obs.width, obs.height, 8);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#7c2d12';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(obs.x + 8, obs.y + 8);           ctx.lineTo(obs.x + obs.width - 8, obs.y + obs.height - 8);
+    ctx.moveTo(obs.x + obs.width - 8, obs.y + 8); ctx.lineTo(obs.x + 8, obs.y + obs.height - 8);
+    ctx.stroke();
+  }
+
+  // العملات
+  for (const coin of coins) {
+    const cx = coin.x + coin.width / 2;
+    const cy = coin.y + coin.height / 2;
+    const r = coin.width / 2;
+    ctx.save();
+    ctx.shadowColor = '#f5c518';
+    ctx.shadowBlur = 12;
+    const cg = ctx.createRadialGradient(cx - 4, cy - 4, 2, cx, cy, r);
+    cg.addColorStop(0, '#fff3a0');
+    cg.addColorStop(1, '#d4a017');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#b8860b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#7c5c00';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$', cx, cy + 1);
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// ================== حلقة اللعبة ==================
+let lastTime = 0;
+function loop(t) {
+  const dt = t - lastTime;
+  lastTime = t;
+  if (gameState === 'playing') {
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+
+// ================== نهاية اللعبة ==================
+function gameOver() {
+  gameState = 'gameover';
+  if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred('error'); } catch(e){} }
+  document.getElementById('finalScore').textContent = score;
+  saveLocalScore();
+  renderLocalLeaderboard();
+  document.getElementById('gameOverScreen').classList.add('show');
+}
+
+function saveLocalScore() {
+  try {
+    const key = 'leaderboard_' + (tgChat ? tgChat.id : 'local');
+    let lb = JSON.parse(localStorage.getItem(key) || '[]');
+    const uid = tgUser.id || 0;
+    const existing = lb.find(p => p.id === uid);
+    if (existing) {
+      if (score > existing.score) existing.score = score;
+      existing.name = tgUser.first_name;
+    } else {
+      lb.push({ id: uid, name: tgUser.first_name, score });
+    }
+    lb.sort((a, b) => b.score - a.score);
+    lb = lb.slice(0, 10);
+    localStorage.setItem(key, JSON.stringify(lb));
+  } catch(e) {}
+}
+
+function renderLocalLeaderboard() {
+  try {
+    const key = 'leaderboard_' + (tgChat ? tgChat.id : 'local');
+    const lb = JSON.parse(localStorage.getItem(key) || '[]');
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '';
+    if (lb.length === 0) {
+      list.innerHTML = '<li style="justify-content:center;color:#888;">لا توجد نتائج بعد</li>';
+      return;
+    }
+    lb.forEach((p, i) => {
+      const li = document.createElement('li');
+      if (p.id === tgUser.id) li.classList.add('me');
+      li.innerHTML = `<span><span class="rank">${i+1}.</span> ${escapeHtml(p.name)}</span><span class="pts">${p.score}</span>`;
+      list.appendChild(li);
+    });
+  } catch(e) {}
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ================== زر الإرسال للبوت ==================
+document.getElementById('sendScoreBtn').addEventListener('click', () => {
+  if (!tg || !tg.sendData) {
+    alert('هذه الميزة تعمل فقط داخل تيليجرام من مجموعة.');
+    return;
+  }
+  const payload = JSON.stringify({
+    action: 'save_score',
+    score: score,
+    name: tgUser.first_name || 'لاعب',
+    user_id: tgUser.id || 0
+  });
+  try {
+    tg.sendData(payload);
+    tg.close();
+  } catch(e) {
+    alert('تعذر إرسال النتيجة. تأكد أنك فتحت اللعبة من داخل المجموعة.');
+  }
+});
+
+// ================== إعادة اللعب ==================
+document.getElementById('restartBtn').addEventListener('click', () => {
+  score = 0;
+  level = 1;
+  speed = BASE_SPEED;
+  car.lane = 1;
+  obstacles = [];
+  coins = [];
+  gameState = 'playing';
+  gameStartTime = performance.now();
+  document.getElementById('scoreDisplay').textContent = '0';
+  document.getElementById('levelDisplay').textContent = '1';
+  document.getElementById('gameOverScreen').classList.remove('show');
+  resizeCanvas();
+  car.targetX = laneX(car.lane, car.width);
+  car.x = car.targetX;
+});
+
+// ================== التشغيل ==================
+resizeCanvas();
+car.targetX = laneX(car.lane, car.width);
+car.x = car.targetX;
+car.y = canvasHeight - 110;
+gameStartTime = performance.now();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
