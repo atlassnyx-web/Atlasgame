@@ -1646,3 +1646,279 @@ startGame = function() {
   }, 1500);
 };
       </script>
+<script>
+// ==================================================================
+// ATLAS — الهروب | الجزء 5: الإصلاحات النهائية والتشغيل
+// ==================================================================
+
+// ==================== إخفاء شاشة التحميل ====================
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) {
+      loadingEl.style.transition = 'opacity 0.5s';
+      loadingEl.style.opacity = '0';
+      setTimeout(() => {
+        loadingEl.style.display = 'none';
+      }, 500);
+    }
+  }, 400);
+});
+
+// ==================== الإصلاحات ====================
+
+// إعادة تعريف متغيرات قد تكون تعارضت
+window.updatePlayer = updatePlayer;
+window.startGame = startGame;
+window.updateGhosts = updateGhosts;
+window.updateWaves = updateWaves;
+window.updateBullets = updateBullets;
+window.updateParticles = updateParticles;
+
+// ==================== نظام الـ Pause (ESC للكمبيوتر) ====================
+let paused = false;
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Escape' && gameState.running) {
+    paused = !paused;
+    if (paused) {
+      document.getElementById('hint').textContent = 'اللعبة متوقفة — اضغط ESC للاستمرار';
+      document.getElementById('hint').classList.add('show');
+    } else {
+      document.getElementById('hint').classList.remove('show');
+    }
+  }
+});
+
+// ==================== حلقة اللعبة الرئيسية (المُصححة) ====================
+let _lastTime = performance.now();
+let _animId = null;
+
+function _gameLoop(now) {
+  _animId = requestAnimationFrame(_gameLoop);
+
+  let elapsed = (now - _lastTime) / 1000;
+  _lastTime = now;
+  if (elapsed > 0.1) elapsed = 0.1;
+
+  if (gameState.running && !paused) {
+    // نجمعها بـ sub-steps للسلاسة
+    const steps = Math.min(4, Math.max(1, Math.round(elapsed / 0.016)));
+    const subDt = elapsed / steps;
+    for (let i = 0; i < steps; i++) {
+      updatePlayer(subDt);
+      updateGhosts(subDt);
+      updateWaves(subDt);
+      updateBullets(subDt);
+      updateParticles(subDt);
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+
+function _startLoop() {
+  if (_animId !== null) return;
+  _lastTime = performance.now();
+  _animId = requestAnimationFrame(_gameLoop);
+}
+
+function _stopLoop() {
+  if (_animId !== null) {
+    cancelAnimationFrame(_animId);
+    _animId = null;
+  }
+}
+
+// ==================== تعديل بدء اللعبة (مُصحح) ====================
+const _originalStart = startGame;
+startGame = function() {
+  paused = false;
+  resetEnemies();
+  resetBullets();
+  ammo = maxAmmo;
+  reloadTimer = 0;
+  shootCooldown = 0;
+
+  // إخفاء شاشات
+  document.getElementById('startScreen').classList.remove('show');
+  document.getElementById('overScreen').classList.remove('show');
+  document.getElementById('hud').classList.add('show');
+  document.getElementById('loading').style.display = 'none';
+
+  if (GAME.isTouch) {
+    document.getElementById('touchControls').classList.add('show');
+  }
+
+  // إعادة ضبط اللاعب
+  player.pos.set(0, 1.6, 0);
+  player.vel.set(0, 0, 0);
+  player.yaw = 0;
+  player.pitch = 0;
+  player.health = player.maxHealth;
+  player.onGround = true;
+  player.bob = 0;
+
+  // إعادة ضبط input
+  Object.keys(input).forEach(k => {
+    if (typeof input[k] === 'boolean') input[k] = false;
+  });
+  input.joyX = 0; input.joyY = 0;
+  input.mouseDX = 0; input.mouseDY = 0;
+
+  gameState.running = true;
+  gameState.startTime = performance.now();
+  gameState.score = 0;
+  gameState.wave = 1;
+  gameState.kills = 0;
+
+  updateHealthBar();
+  updateAmmoBar();
+  updateScoreDisplay();
+  updateWaveDisplay();
+
+  // تشغيل الحلقة الرئيسية
+  _startLoop();
+
+  if (!GAME.isTouch) {
+    document.getElementById('hint').classList.add('show');
+  }
+
+  // بدء الموجة الأولى
+  setTimeout(() => {
+    if (gameState.running) startWave(1);
+  }, 1500);
+};
+
+// ==================== تعديل نهاية اللعبة (مُصحح) ====================
+const _originalEnd = endGame;
+endGame = function() {
+  gameState.running = false;
+  paused = false;
+
+  document.getElementById('hud').classList.remove('show');
+  document.getElementById('touchControls').classList.remove('show');
+  document.getElementById('hint').classList.remove('show');
+
+  if (document.pointerLockElement) {
+    try { document.exitPointerLock(); } catch(e) {}
+  }
+
+  const elapsed = Math.floor((performance.now() - gameState.startTime) / 1000);
+  document.getElementById('finalKills').textContent = gameState.kills;
+  document.getElementById('finalWave').textContent = gameState.wave;
+  document.getElementById('finalTime').textContent = elapsed + 's';
+
+  document.getElementById('overScreen').classList.add('show');
+};
+
+// ==================== إعادة تعريف الأزرار (للتأكد) ====================
+const _startBtn = document.getElementById('startBtn');
+const _restartBtn = document.getElementById('restartBtn');
+const _startBtnClone = _startBtn.cloneNode(true);
+const _restartBtnClone = _restartBtn.cloneNode(true);
+_startBtn.parentNode.replaceChild(_startBtnClone, _startBtn);
+_restartBtn.parentNode.replaceChild(_restartBtnClone, _restartBtn);
+
+_startBtnClone.addEventListener('click', () => {
+  if (typeof initAudio === 'function') {
+    try { initAudio(); } catch(e) {}
+  }
+  startGame();
+});
+_restartBtnClone.addEventListener('click', () => {
+  if (typeof initAudio === 'function') {
+    try { initAudio(); } catch(e) {}
+  }
+  startGame();
+});
+
+// ==================== تأثير اهتزاز الشاشة عند الإصابة ====================
+const _origDamagePlayer = damagePlayer;
+damagePlayer = function(amount) {
+  _origDamagePlayer(amount);
+  // اهتزاز مؤقت
+  const cvs = document.getElementById('game');
+  cvs.style.transition = 'transform 0.05s';
+  cvs.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+  setTimeout(() => {
+    cvs.style.transform = 'translate(0,0)';
+  }, 80);
+};
+
+// ==================== Ambient Sound (خلفية مرعبة) ====================
+let ambientOsc = null;
+let ambientGain = null;
+
+function startAmbient() {
+  if (!audioCtx || ambientOsc) return;
+  try {
+    ambientOsc = audioCtx.createOscillator();
+    ambientGain = audioCtx.createGain();
+    ambientOsc.type = 'sine';
+    ambientOsc.frequency.setValueAtTime(45, audioCtx.currentTime);
+    ambientGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+    ambientOsc.connect(ambientGain);
+    ambientGain.connect(audioCtx.destination);
+    ambientOsc.start();
+  } catch(e) {}
+}
+
+function stopAmbient() {
+  try {
+    if (ambientOsc) {
+      ambientOsc.stop();
+      ambientOsc.disconnect();
+      ambientOsc = null;
+    }
+  } catch(e) {}
+}
+
+// نبدأ ambient لما يبدأ اللعب
+const _origStartForAmbient = startGame;
+startGame = function() {
+  _origStartForAmbient();
+  startAmbient();
+};
+
+// ==================== اختبار وإصلاحات أخيرة ====================
+
+// تحقق من وجود كل المكونات
+console.log('===== ATLAS — الهروب =====');
+console.log('✓ Three.js:', typeof THREE);
+console.log('✓ Scene:', typeof scene);
+console.log('✓ Camera:', typeof camera);
+console.log('✓ Renderer:', typeof renderer);
+console.log('✓ Player:', typeof player);
+console.log('✓ Ghosts array:', Array.isArray(ghosts));
+console.log('✓ Bullets array:', Array.isArray(bullets));
+console.log('✓ Particles array:', Array.isArray(particles));
+console.log('✓ startWave:', typeof startWave);
+console.log('✓ spawnParticles:', typeof spawnParticles);
+console.log('=========================');
+
+// إخفاء شاشة التحميل بعد 2 ثانية كحد أقصى (احتياطي)
+setTimeout(() => {
+  const loadingEl = document.getElementById('loading');
+  if (loadingEl && loadingEl.style.display !== 'none') {
+    loadingEl.style.display = 'none';
+  }
+}, 2000);
+
+// إخفاء الـ hint افتراضياً
+document.getElementById('hint').classList.remove('show');
+
+// ==================== تحسينات الأداء أثناء اللعب ====================
+// إيقاف الـ ambient عند التبويب في الخلفية
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (audioCtx) try { audioCtx.suspend(); } catch(e) {}
+  } else {
+    if (audioCtx) try { audioCtx.resume(); } catch(e) {}
+  }
+});
+
+// ==================== نهاية الجزء 5 ====================
+console.log('✅ الجزء 5 جاهز — اللعبة شغالة!');
+</script>
+</body>
+</html>
