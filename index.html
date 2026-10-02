@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#000000">
 <title>ATLAS — الهروب</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -17,68 +16,111 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
 #hud { position:absolute; inset:0; pointer-events:none; z-index:10; display:none; }
 #hud.show { display:block; }
 
-#crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:22px; height:22px; }
-#crosshair::before, #crosshair::after { content:''; position:absolute; background:rgba(255,50,50,0.9); box-shadow:0 0 6px rgba(255,50,50,0.8); }
+#crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:20px; height:20px; }
+#crosshair::before, #crosshair::after { content:''; position:absolute; background:rgba(255,60,60,0.95); box-shadow:0 0 6px rgba(255,60,60,0.9); }
 #crosshair::before { top:50%; left:0; width:100%; height:2px; transform:translateY(-50%); }
 #crosshair::after { left:50%; top:0; width:2px; height:100%; transform:translateX(-50%); }
+#crosshair .dot { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:3px; height:3px; border-radius:50%; background:#fff; box-shadow:0 0 4px #ff3030; }
 
 #topInfo { position:absolute; top:14px; left:50%; transform:translateX(-50%); text-align:center; }
-#topInfo .wave { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:900; letter-spacing:3px; color:#d42020; text-shadow:0 0 12px rgba(212,32,32,0.8); margin-bottom:5px; }
+#topInfo .wave { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:900; letter-spacing:3px; color:#ff3030; text-shadow:0 0 12px rgba(255,48,48,0.8); margin-bottom:5px; }
 #topInfo .score { font-family:'Orbitron',sans-serif; font-size:22px; font-weight:900; color:#fff; text-shadow:0 0 14px rgba(255,255,255,0.5); }
 
 #healthBox { position:absolute; bottom:20px; left:20px; width:200px; max-width:40vw; }
-#healthBox .lbl { font-size:10px; font-weight:900; letter-spacing:2px; color:#8a1414; margin-bottom:5px; }
-#healthBar { height:13px; background:rgba(0,0,0,0.7); border:1px solid rgba(139,20,20,0.6); border-radius:4px; overflow:hidden; }
-#healthFill { height:100%; width:100%; background:linear-gradient(90deg,#8a1414,#d42020); transition:width 0.15s; box-shadow:0 0 12px rgba(212,32,32,0.7); }
+#healthBox .lbl { font-size:10px; font-weight:900; letter-spacing:2px; color:#ff4040; margin-bottom:5px; text-shadow:0 0 8px rgba(255,60,60,0.6); }
+#healthBar { height:14px; background:rgba(0,0,0,0.7); border:1px solid rgba(180,30,30,0.7); border-radius:4px; overflow:hidden; box-shadow:inset 0 0 8px rgba(0,0,0,0.9); }
+#healthFill { height:100%; width:100%; background:linear-gradient(90deg,#c41010,#ff3030); transition:width 0.15s; box-shadow:0 0 12px rgba(255,60,60,0.7); }
 
 #ammoBox { position:absolute; bottom:20px; right:20px; text-align:left; direction:ltr; }
 #ammoBox .num { font-family:'Orbitron',sans-serif; font-size:38px; font-weight:900; color:#f5c518; line-height:1; text-shadow:0 0 16px rgba(245,197,24,0.7); }
 #ammoBox .num small { font-size:18px; color:#8a8a8a; margin-left:3px; }
 #ammoBox .lbl { font-size:10px; font-weight:900; letter-spacing:3px; color:#8a8a8a; margin-top:2px; text-align:right; }
 
-#damageOverlay { position:absolute; inset:0; background:radial-gradient(circle at center, transparent 30%, rgba(180,0,0,0.7) 100%); opacity:0; pointer-events:none; transition:opacity 0.25s; z-index:9; }
+#damageOverlay { position:absolute; inset:0; background:radial-gradient(circle at center, transparent 35%, rgba(200,0,0,0.75) 100%); opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:9; }
 #damageOverlay.flash { opacity:1; transition:opacity 0s; }
 
 /* ============ Touch Controls ============ */
 #touchControls { position:absolute; inset:0; z-index:20; display:none; }
 #touchControls.show { display:block; }
-#joystick { position:absolute; bottom:30px; left:30px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.2); touch-action:none; }
-#joystickBase { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:55px; height:55px; border-radius:50%; background:rgba(245,197,24,0.35); border:2px solid rgba(245,197,24,0.7); box-shadow:0 0 20px rgba(245,197,24,0.4); pointer-events:none; }
-.touchBtn { position:absolute; width:75px; height:75px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.25); color:#fff; font-family:'Cairo', sans-serif; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1; touch-action:none; }
-.touchBtn:active { background:rgba(245,197,24,0.25); border-color:rgba(245,197,24,0.7); transform:scale(0.95); }
-#shootBtn { bottom:105px; right:25px; width:95px; height:95px; background:rgba(200,30,30,0.3); border-color:rgba(255,80,80,0.7); font-size:13px; }
-#jumpBtn { bottom:25px; right:130px; }
-#runBtn { bottom:115px; right:135px; width:65px; height:65px; font-size:10px; }
+
+#joystick { position:absolute; bottom:30px; left:30px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.25); touch-action:none; }
+#joystickBase { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:60px; height:60px; border-radius:50%; background:rgba(245,197,24,0.4); border:2px solid rgba(245,197,24,0.8); box-shadow:0 0 25px rgba(245,197,24,0.5); pointer-events:none; }
+
+.touchBtn { position:absolute; width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.3); color:#fff; font-family:'Cairo', sans-serif; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1; touch-action:none; }
+.touchBtn:active { background:rgba(245,197,24,0.3); border-color:rgba(245,197,24,0.8); transform:scale(0.94); }
+#shootBtn { bottom:100px; right:25px; width:100px; height:100px; background:rgba(220,40,40,0.35); border-color:rgba(255,80,80,0.8); font-size:14px; }
+#jumpBtn { bottom:25px; right:140px; }
+#runBtn { bottom:120px; right:145px; width:70px; height:70px; font-size:10px; }
+
+/* Look area (right half) — invisible, spans right side for turning */
+#lookArea {
+  position:absolute; top:0; right:0;
+  width:55%; height:100%;
+  z-index:15; display:none;
+  touch-action:none;
+}
+#lookArea.show { display:block; }
 
 /* ============ Overlays ============ */
-.overlay { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; background:radial-gradient(circle at center, rgba(20,0,0,0.95), rgba(0,0,0,1)); z-index:30; padding:24px; text-align:center; }
+.overlay { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; background:radial-gradient(circle at center, rgba(20,0,0,0.96), rgba(0,0,0,1)); z-index:30; padding:24px; text-align:center; overflow-y:auto; }
 .overlay.show { display:flex; }
 
-.title-horror { font-family:'Orbitron',sans-serif; font-size:60px; font-weight:900; letter-spacing:12px; color:#d42020; line-height:1; margin-bottom:6px; text-shadow:0 0 10px rgba(255,0,0,0.9), 0 0 25px rgba(255,0,0,0.5), 0 0 45px rgba(255,0,0,0.3); }
-.subtitle-horror { font-size:14px; color:#8a1414; letter-spacing:14px; margin-bottom:40px; font-weight:900; }
-.desc { max-width:340px; color:#a0a8b0; font-size:14px; line-height:2; margin-bottom:32px; }
-.desc b { color:#d42020; }
+.title-horror { font-family:'Orbitron',sans-serif; font-size:60px; font-weight:900; letter-spacing:12px; color:#ff2020; line-height:1; margin-bottom:6px; text-shadow:0 0 10px rgba(255,0,0,0.9), 0 0 25px rgba(255,0,0,0.5), 0 0 45px rgba(255,0,0,0.3); }
+.subtitle-horror { font-size:14px; color:#c42020; letter-spacing:14px; margin-bottom:36px; font-weight:900; text-shadow:0 0 10px rgba(255,50,50,0.5); }
+.desc { max-width:400px; color:#c0c8d0; font-size:14px; line-height:2; margin-bottom:28px; }
+.desc b { color:#ff3030; }
+.desc .keys { display:inline-block; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); border-radius:5px; padding:1px 8px; margin:0 2px; font-weight:900; color:#fff; font-family:'Orbitron',sans-serif; }
 
-.btn { font-family:'Cairo', sans-serif; padding:16px 52px; font-size:18px; font-weight:900; background:linear-gradient(180deg,#d42020,#8a1414); color:#fff; border:none; border-radius:8px; cursor:pointer; letter-spacing:2px; box-shadow:0 6px 0 #400808, 0 8px 24px rgba(212,32,32,0.5); transition:transform 0.1s, box-shadow 0.1s; margin:6px 0; }
-.btn:active { transform:translateY(5px); box-shadow:0 1px 0 #400808; }
+.btn { font-family:'Cairo', sans-serif; padding:16px 52px; font-size:18px; font-weight:900; background:linear-gradient(180deg,#e03030,#a01010); color:#fff; border:none; border-radius:8px; cursor:pointer; letter-spacing:2px; box-shadow:0 6px 0 #500808, 0 8px 24px rgba(220,40,40,0.5); transition:transform 0.1s; margin:6px 0; }
+.btn:active { transform:translateY(5px); box-shadow:0 1px 0 #500808; }
 
-.gameOverTitle { font-family:'Orbitron',sans-serif; font-size:48px; font-weight:900; letter-spacing:8px; color:#d42020; line-height:1; margin-bottom:8px; text-shadow:0 0 20px rgba(255,0,0,0.9); }
+.gameOverTitle { font-family:'Orbitron',sans-serif; font-size:48px; font-weight:900; letter-spacing:8px; color:#ff2020; line-height:1; margin-bottom:8px; text-shadow:0 0 20px rgba(255,0,0,0.9); }
 .stats-block { display:flex; gap:36px; margin:24px 0 32px; }
 .stat-item { text-align:center; }
 .stat-item .lbl { font-size:10px; color:#8a8a8a; letter-spacing:2px; font-weight:900; margin-bottom:6px; }
 .stat-item .val { font-family:'Orbitron',sans-serif; font-size:34px; font-weight:900; color:#f5c518; line-height:1; text-shadow:0 0 16px rgba(245,197,24,0.6); }
-.stat-item .val.red { color:#d42020; text-shadow:0 0 16px rgba(212,32,32,0.7); }
+.stat-item .val.red { color:#ff3030; text-shadow:0 0 16px rgba(255,48,48,0.7); }
 
-#hint { position:absolute; bottom:50%; left:50%; transform:translate(-50%, 50%); color:#a0a8b0; font-size:14px; text-align:center; pointer-events:none; z-index:11; display:none; text-shadow:0 0 10px rgba(0,0,0,0.9); }
+#hint { position:absolute; bottom:50%; left:50%; transform:translate(-50%, 50%); color:#c0c8d0; font-size:14px; text-align:center; pointer-events:none; z-index:11; display:none; text-shadow:0 0 10px rgba(0,0,0,0.9); }
 #hint.show { display:block; }
+
+/* Landscape warning */
+#rotateMsg {
+  position:fixed; inset:0; z-index:9999;
+  display:none; flex-direction:column;
+  justify-content:center; align-items:center;
+  background:#000; color:#fff; text-align:center; padding:20px;
+}
+#rotateMsg.show { display:flex; }
+#rotateMsg .icon {
+  font-size:80px; margin-bottom:20px;
+  animation: rotateAnim 2s ease-in-out infinite;
+}
+@keyframes rotateAnim {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
+#rotateMsg .txt { font-size:18px; font-weight:900; color:#ff3030; letter-spacing:2px; }
+#rotateMsg .sub { font-size:13px; color:#8a8a8a; margin-top:10px; }
+
+@media (orientation: portrait) {
+  #rotateMsg.show { display:flex; }
+}
 </style>
 </head>
 <body>
 
+<!-- Landscape warning -->
+<div id="rotateMsg">
+  <div class="icon">📱</div>
+  <div class="txt">أدِر جهازك بالعرض</div>
+  <div class="sub">اللعبة تحتاج الوضع الأفقي للتحكم الأفضل</div>
+</div>
+
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="crosshair"></div>
+  <div id="crosshair"><div class="dot"></div></div>
   <div id="topInfo">
     <div class="wave" id="waveLabel">الموجة 1</div>
     <div class="score" id="scoreLabel">0</div>
@@ -96,6 +138,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
 
 <div id="hint">اضغط على الشاشة للتحكم</div>
 
+<div id="lookArea"></div>
+
 <div id="touchControls">
   <div id="joystick"><div id="joystickBase"></div></div>
   <div class="touchBtn" id="shootBtn">إطلاق</div>
@@ -108,8 +152,13 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
   <div class="subtitle-horror">الـــهـــروب</div>
   <div class="desc">
     أنت محبوس في مكان مظلم.<br>
-    <b>الأشباح قادمة...</b><br>
-    اقتل أكبر عدد ممكن قبل أن يمسكوك.
+    <b>الأشباح قادمة...</b><br><br>
+    <b>على الكمبيوتر:</b><br>
+    حركة <span class="keys">W</span><span class="keys">A</span><span class="keys">S</span><span class="keys">D</span><br>
+    نظر <span class="keys">الماوس</span> · إطلاق <span class="keys">كليك</span><br>
+    <span class="keys">Shift</span> جري · <span class="keys">Space</span> قفز<br><br>
+    <b>على الجوال:</b> الوضع الأفقي<br>
+    Joystick للحركة · لمس النصف الأيمن للنظر
   </div>
   <button class="btn" id="startBtn">ابدأ اللعب</button>
 </div>
@@ -126,20 +175,23 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#e
 
 <script>
 /* ================================================================
-   ATLAS — الهروب | لعبة FPS رعب بملف واحد
+   ATLAS — الهروب | لعبة FPS رعب
+   النسخة 2 — محسّنة للسلاسة والإضاءة والأصوات
    ================================================================ */
 
-// ==================== إعدادات ====================
 const IS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-// ==================== Audio ====================
+// ==================== Audio (محسّن) ====================
 let audioCtx = null;
 function initAudio() {
   if (audioCtx) return;
   try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 }
-function beep(freq, type, dur, vol, sweepTo) {
+
+// نطق نغمة
+function playTone(freq, type, dur, vol, sweepTo) {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
@@ -148,60 +200,131 @@ function beep(freq, type, dur, vol, sweepTo) {
   osc.frequency.setValueAtTime(freq, t);
   if (sweepTo) osc.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.005);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   osc.connect(g); g.connect(audioCtx.destination);
   osc.start(t); osc.stop(t + dur + 0.02);
 }
+
+// ضربة ضوضاء (للأصوات الواقعية)
+function playNoise(dur, vol, filterFreq, sweepTo) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(filterFreq, t);
+  if (sweepTo) filter.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+  src.start(t); src.stop(t + dur);
+}
+
 const sfx = {
-  shoot:    () => { beep(320,'square',0.06,0.06,90); beep(1400,'sine',0.04,0.04,400); },
-  hitGhost: () => beep(200,'sawtooth',0.18,0.07,60),
-  ghostDie: () => { beep(180,'sine',0.6,0.08,40); beep(90,'sawtooth',0.7,0.05,30); },
-  jump:     () => beep(280,'sine',0.09,0.05,180),
-  groan:    () => { beep(80+Math.random()*40,'sawtooth',1.2,0.05,50); beep(160,'sine',1.5,0.03,80); },
-  wave:     () => { beep(120,'sawtooth',0.4,0.09,60); beep(180,'sawtooth',0.5,0.08,90); beep(240,'sine',0.6,0.07,120); },
-  hit:      () => { beep(150,'sawtooth',0.2,0.08,60); },
-  reload:   () => beep(600,'square',0.1,0.05,900),
-  noAmmo:   () => beep(150,'square',0.08,0.05,100),
+  // طلقة بندقية — ضوضاء قوية + نغمة عالية
+  shoot: () => {
+    playNoise(0.12, 0.35, 3000, 200);
+    playTone(180, 'square', 0.06, 0.15, 60);
+  },
+  // إصابة شبح
+  hitGhost: () => {
+    playNoise(0.08, 0.15, 2000, 400);
+    playTone(300, 'sawtooth', 0.1, 0.08, 100);
+  },
+  // موت شبح — صرخة مرعبة
+  ghostDie: () => {
+    playTone(280, 'sawtooth', 0.5, 0.12, 50);
+    playTone(120, 'sine', 0.7, 0.08, 30);
+    playNoise(0.6, 0.1, 800, 100);
+  },
+  // قفز
+  jump: () => {
+    playTone(220, 'sine', 0.08, 0.06, 380);
+  },
+  // أنين شبح
+  groan: () => {
+    playTone(70 + Math.random() * 30, 'sawtooth', 1.4, 0.06, 45);
+    playTone(140, 'sine', 1.6, 0.035, 70);
+  },
+  // بداية موجة
+  wave: () => {
+    playTone(140, 'sawtooth', 0.3, 0.1, 80);
+    playTone(200, 'sawtooth', 0.4, 0.09, 110);
+    playTone(280, 'sine', 0.5, 0.08, 140);
+  },
+  // إصابة اللاعب
+  hit: () => {
+    playNoise(0.15, 0.15, 800, 200);
+    playTone(120, 'square', 0.15, 0.08, 60);
+  },
+  // إعادة تعبئة
+  reload: () => {
+    playTone(800, 'square', 0.06, 0.05, 1200);
+    setTimeout(() => playTone(600, 'square', 0.08, 0.05, 400), 80);
+  },
+  // لا رصاص
+  noAmmo: () => {
+    playTone(180, 'square', 0.05, 0.08, 100);
+  },
+  // خطوة
+  step: () => {
+    playNoise(0.04, 0.03, 400, 200);
+  },
 };
 
 // ==================== Three.js setup ====================
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-const pixelRatio = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 1.0 : 1.25);
+const pixelRatio = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 0.85 : 1.0);
 renderer.setPixelRatio(pixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000000, 1);
+renderer.setClearColor(0x0a0810, 1);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
-scene.fog = new THREE.Fog(0x000000, 3, 28);
+scene.background = new THREE.Color(0x0a0810);
+// ضباب أخف بكثير
+scene.fog = new THREE.Fog(0x0a0810, 12, 45);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 120);
 camera.position.set(0, 1.6, 0);
 camera.rotation.order = 'YXZ';
 
-// ==================== Lighting ====================
-scene.add(new THREE.AmbientLight(0x1a1a2a, 0.1));
-scene.add(new THREE.HemisphereLight(0x1a1030, 0x000000, 0.15));
+// ==================== إضاءة أقوى ====================
+// إضاءة محيطة أعلى بكثير
+scene.add(new THREE.AmbientLight(0x505060, 0.55));
+scene.add(new THREE.HemisphereLight(0x404060, 0x100808, 0.35));
 
-const flashlight = new THREE.SpotLight(0xfff0d0, 1.8, 25, Math.PI / 5.5, 0.45, 1.5);
+// كشاف اللاعب — أقوى وأوسع
+const flashlight = new THREE.SpotLight(0xfff8e0, 3.5, 40, Math.PI / 4.5, 0.55, 1.2);
 flashlight.castShadow = false;
 scene.add(flashlight);
 scene.add(flashlight.target);
 
-const redLight = new THREE.PointLight(0xd42020, 0.2, 15);
-redLight.position.set(0, 3, -8);
+// ضوء أحمر خافت
+const redLight = new THREE.PointLight(0xff2020, 0.5, 25);
+redLight.position.set(0, 4, -10);
 scene.add(redLight);
 
+// ضوء تعبئة من الأعلى (كأن هناك فتحات في السقف)
+const fillLight = new THREE.DirectionalLight(0x303040, 0.25);
+fillLight.position.set(0, 10, 0);
+scene.add(fillLight);
+
 // ==================== Materials ====================
-const matWall = new THREE.MeshLambertMaterial({ color: 0x2a2420 });
-const matWallDark = new THREE.MeshLambertMaterial({ color: 0x1a1510 });
-const matFloor = new THREE.MeshLambertMaterial({ color: 0x151210 });
-const matCeiling = new THREE.MeshLambertMaterial({ color: 0x0a0808 });
-const matPillar = new THREE.MeshLambertMaterial({ color: 0x302820 });
-const matBone = new THREE.MeshLambertMaterial({ color: 0xb0a890 });
-const matBlood = new THREE.MeshLambertMaterial({ color: 0x5a0808 });
+const matWall = new THREE.MeshLambertMaterial({ color: 0x4a4240 });
+const matWallDark = new THREE.MeshLambertMaterial({ color: 0x3a3230 });
+const matFloor = new THREE.MeshLambertMaterial({ color: 0x2a2622 });
+const matCeiling = new THREE.MeshLambertMaterial({ color: 0x1a1614 });
+const matPillar = new THREE.MeshLambertMaterial({ color: 0x504540 });
+const matBone = new THREE.MeshLambertMaterial({ color: 0xd0c8a8 });
+const matBlood = new THREE.MeshLambertMaterial({ color: 0x7a1010 });
 
 // ==================== Arena ====================
 const ARENA = { w: 60, d: 60, h: 6 };
@@ -223,26 +346,19 @@ ceiling.rotation.x = Math.PI / 2;
 ceiling.position.y = ARENA.h;
 scene.add(ceiling);
 
-// Walls container
+// Walls
 const mazeWalls = [];
-
 function addWall(x, y, z, w, h, d, mat) {
   const m = new THREE.Mesh(wallGeo, mat);
   m.position.set(x, y, z);
   m.scale.set(w, h, d);
   scene.add(m);
-  if (h === wallH && mat !== matWall) {
-    mazeWalls.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2 });
-  }
 }
-
-// Outer walls
 addWall(-halfW, wallH/2, 0, wallT, wallH, ARENA.d, matWall);
 addWall(halfW, wallH/2, 0, wallT, wallH, ARENA.d, matWall);
 addWall(0, wallH/2, -halfD, ARENA.w, wallH, wallT, matWall);
 addWall(0, wallH/2, halfD, ARENA.w, wallH, wallT, matWall);
 
-// Inner maze walls
 function addInner(x, z, w, d) {
   const m = new THREE.Mesh(wallGeo, matWallDark);
   m.position.set(x, wallH/2, z);
@@ -265,7 +381,6 @@ addInner(12, 12, 8, 0.5);
 addInner(0, -8, 0.5, 6);
 addInner(0, 8, 0.5, 6);
 
-// Pillars
 function addPillar(x, z) {
   const p = new THREE.Mesh(wallGeo, matPillar);
   p.position.set(x, wallH/2, z);
@@ -277,7 +392,6 @@ function addPillar(x, z) {
 
 // Decor
 const skullGeo = new THREE.SphereGeometry(0.2, 6, 5);
-const boneGeo = new THREE.BoxGeometry(0.08, 0.08, 0.4);
 function addSkull(x, z) {
   const s = new THREE.Mesh(skullGeo, matBone);
   s.position.set(x, 0.2, z);
@@ -287,7 +401,7 @@ function addSkull(x, z) {
 function addBlood(x, z) {
   const b = new THREE.Mesh(new THREE.CircleGeometry(0.5 + Math.random()*0.4, 8), matBlood);
   b.rotation.x = -Math.PI/2;
-  b.position.set(x, 0.01, z);
+  b.position.set(x, 0.02, z);
   scene.add(b);
 }
 [[-16,-8],[-14,3],[-16,10],[-10,-14],[-4,-16],[10,-14],[14,-4],[16,8],[12,16],[4,16],[-8,14],[14,-14],[8,-8],[-8,8]].forEach((p,i) => {
@@ -301,11 +415,12 @@ const player = {
   vel: new THREE.Vector3(0, 0, 0),
   yaw: 0, pitch: 0,
   onGround: true,
-  speed: 4.2, runSpeed: 7.0,
-  jumpForce: 6.5, gravity: 18,
-  height: 1.6, radius: 0.35,
+  speed: 5.0, runSpeed: 8.5,
+  jumpForce: 7.0, gravity: 18,
+  height: 1.6, radius: 0.4,
   health: 100, maxHealth: 100,
   bob: 0,
+  stepTimer: 0,
 };
 
 // ==================== Input ====================
@@ -314,24 +429,36 @@ const input = {
   jump: false, run: false, shoot: false,
   mouseDX: 0, mouseDY: 0,
   locked: false,
-  joyX: 0, joyY: 0, joyId: null, joyActive: false, joyStartX: 0, joyStartY: 0, joyMax: 55,
-  lookId: null, lookX: 0, lookY: 0,
+  joyX: 0, joyY: 0, joyId: null, joyStartX: 0, joyStartY: 0, joyMax: 60,
+  lookId: null, lookLastX: 0, lookLastY: 0,
   touchJump: false, touchRun: false, touchShoot: false,
 };
 
-// Keyboard
-const keyMap = { KeyW:'forward', ArrowUp:'forward', KeyS:'backward', ArrowDown:'backward', KeyA:'left', ArrowLeft:'left', KeyD:'right', ArrowRight:'right', Space:'jump', ShiftLeft:'run', ShiftRight:'run' };
+// ==================== Keyboard (WASD ثابت) ====================
+const KEY_MAP = {
+  'KeyW': 'forward',   // W = أمام
+  'ArrowUp': 'forward',
+  'KeyS': 'backward',  // S = خلف
+  'ArrowDown': 'backward',
+  'KeyA': 'left',      // A = يسار
+  'ArrowLeft': 'left',
+  'KeyD': 'right',     // D = يمين
+  'ArrowRight': 'right',
+  'Space': 'jump',
+  'ShiftLeft': 'run',
+  'ShiftRight': 'run',
+};
 window.addEventListener('keydown', e => {
   if (e.code === 'Space') e.preventDefault();
-  const a = keyMap[e.code];
-  if (a) input[a] = true;
+  const a = KEY_MAP[e.code];
+  if (a) { input[a] = true; }
 });
 window.addEventListener('keyup', e => {
-  const a = keyMap[e.code];
-  if (a) input[a] = false;
+  const a = KEY_MAP[e.code];
+  if (a) { input[a] = false; }
 });
 
-// Mouse look (PC)
+// Mouse look
 canvas.addEventListener('click', () => {
   if (!game.running) return;
   if (!IS_TOUCH && !input.locked) canvas.requestPointerLock();
@@ -348,10 +475,12 @@ document.addEventListener('mousemove', e => {
 document.addEventListener('mousedown', e => { if (e.button === 0 && input.locked) input.shoot = true; });
 document.addEventListener('mouseup', e => { if (e.button === 0) input.shoot = false; });
 
-// Touch controls
+// ==================== Touch Controls ====================
 const joystickEl = document.getElementById('joystick');
 const joystickBaseEl = document.getElementById('joystickBase');
+const lookAreaEl = document.getElementById('lookArea');
 
+// Joystick
 joystickEl.addEventListener('touchstart', e => {
   e.preventDefault();
   if (input.joyId !== null) return;
@@ -360,7 +489,6 @@ joystickEl.addEventListener('touchstart', e => {
   input.joyId = t.identifier;
   input.joyStartX = rect.left + rect.width/2;
   input.joyStartY = rect.top + rect.height/2;
-  input.joyActive = true;
 }, { passive: false });
 
 window.addEventListener('touchmove', e => {
@@ -376,12 +504,12 @@ window.addEventListener('touchmove', e => {
       joystickBaseEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     }
     if (t.identifier === input.lookId) {
-      const dx = t.clientX - input.lookX;
-      const dy = t.clientY - input.lookY;
-      input.mouseDX += dx * 1.8;
-      input.mouseDY += dy * 1.8;
-      input.lookX = t.clientX;
-      input.lookY = t.clientY;
+      const dx = t.clientX - input.lookLastX;
+      const dy = t.clientY - input.lookLastY;
+      input.mouseDX += dx * 2.2;
+      input.mouseDY += dy * 2.2;
+      input.lookLastX = t.clientX;
+      input.lookLastY = t.clientY;
     }
   }
 }, { passive: false });
@@ -391,30 +519,33 @@ window.addEventListener('touchend', e => {
     const t = e.changedTouches[i];
     if (t.identifier === input.joyId) {
       input.joyId = null;
-      input.joyActive = false;
       input.joyX = 0; input.joyY = 0;
       joystickBaseEl.style.transform = 'translate(-50%,-50%)';
     }
     if (t.identifier === input.lookId) input.lookId = null;
   }
 }, { passive: false });
+window.addEventListener('touchcancel', () => {
+  input.joyId = null;
+  input.joyX = 0; input.joyY = 0;
+  joystickBaseEl.style.transform = 'translate(-50%,-50%)';
+  input.lookId = null;
+});
 
-canvas.addEventListener('touchstart', e => {
+// Look area (right half) — يستقبل لمس للنظر
+lookAreaEl.addEventListener('touchstart', e => {
+  e.preventDefault();
   if (input.lookId !== null) return;
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    if (t.target.closest('#joystick') || t.target.closest('.touchBtn')) continue;
-    input.lookId = t.identifier;
-    input.lookX = t.clientX;
-    input.lookY = t.clientY;
-    break;
-  }
+  const t = e.changedTouches[0];
+  input.lookId = t.identifier;
+  input.lookLastX = t.clientX;
+  input.lookLastY = t.clientY;
 }, { passive: false });
 
 function bindBtn(el, prop) {
-  el.addEventListener('touchstart', e => { e.preventDefault(); input[prop] = true; }, { passive: false });
-  el.addEventListener('touchend', e => { e.preventDefault(); input[prop] = false; }, { passive: false });
-  el.addEventListener('touchcancel', () => { input[prop] = false; });
+  el.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); input[prop] = true; }, { passive: false });
+  el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); input[prop] = false; }, { passive: false });
+  el.addEventListener('touchcancel', e => { input[prop] = false; });
 }
 bindBtn(document.getElementById('shootBtn'), 'touchShoot');
 bindBtn(document.getElementById('jumpBtn'), 'touchJump');
@@ -437,12 +568,20 @@ const ghosts = [];
 const ghostHeadGeo = new THREE.SphereGeometry(0.55, 8, 6);
 const ghostBodyGeo = new THREE.ConeGeometry(0.65, 1.4, 6);
 const ghostEyeGeo = new THREE.SphereGeometry(0.1, 5, 4);
-const ghostEyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const ghostEyeMat = new THREE.MeshBasicMaterial({ color: 0xff2020 });
 
-function makeGhostMat(color) {
-  return new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 0.35, transparent: true, opacity: 0.75 });
+function makeGhostMat(color, emissive) {
+  return new THREE.MeshLambertMaterial({
+    color, emissive: emissive || color,
+    emissiveIntensity: 0.55,
+    transparent: true, opacity: 0.85,
+  });
 }
-const ghostMats = [makeGhostMat(0x8b1a2b), makeGhostMat(0x4a2a5a), makeGhostMat(0x2a3a5a)];
+const ghostMats = [
+  makeGhostMat(0xb02030, 0x801020),
+  makeGhostMat(0x6a3a7a, 0x401050),
+  makeGhostMat(0x3a4a7a, 0x1a2050),
+];
 
 function spawnGhost(speed, hp, type) {
   const group = new THREE.Group();
@@ -460,7 +599,6 @@ function spawnGhost(speed, hp, type) {
   eyeR.position.set(0.2, 1.3, 0.42);
   group.add(eyeR);
 
-  // Position away from player
   let x, z, tries = 0;
   do {
     const side = Math.floor(Math.random() * 4);
@@ -492,7 +630,7 @@ function killGhost(g) {
   game.score += 10;
   updateHUD();
   sfx.ghostDie();
-  spawnParticles(g.x, 0.8, g.z, 0xa01030, 15);
+  spawnParticles(g.x, 1.0, g.z, 0xc02030, 14);
 }
 
 function updateGhosts(dt) {
@@ -500,11 +638,11 @@ function updateGhosts(dt) {
     const g = ghosts[i];
     if (g.dying) {
       g.dyingT += dt;
-      const t = g.dyingT / 0.7;
+      const t = g.dyingT / 0.6;
       g.mesh.scale.setScalar(Math.max(0.01, 1 - t));
-      g.mesh.position.y += dt * 1.5;
-      g.mesh.rotation.z += dt * 5;
-      g.mesh.traverse(c => { if (c.material && c.material.opacity !== undefined) c.material.opacity = Math.max(0, 0.75 * (1-t)); });
+      g.mesh.position.y += dt * 1.8;
+      g.mesh.rotation.z += dt * 6;
+      g.mesh.traverse(c => { if (c.material && c.material.opacity !== undefined) c.material.opacity = Math.max(0, 0.85 * (1-t)); });
       if (t >= 1) { scene.remove(g.mesh); ghosts.splice(i, 1); }
       continue;
     }
@@ -530,12 +668,12 @@ function updateGhosts(dt) {
     g.mesh.rotation.y = Math.atan2(dx, dz);
 
     g.attackCD -= dt;
-    if (dist < 1.5 && g.attackCD <= 0) {
+    if (dist < 1.6 && g.attackCD <= 0) {
       damagePlayer(8);
       g.attackCD = 1.2;
       sfx.hit();
     }
-    if (Math.random() < dt * 0.12) sfx.groan();
+    if (Math.random() < dt * 0.10) sfx.groan();
   }
 }
 
@@ -553,7 +691,7 @@ function startWave(n) {
   waveTotal = Math.min(12, 3 + (n - 1) * 2);
   waveSpawned = 0;
   waveActive = true;
-  waveSpawnT = 1.5;
+  waveSpawnT = 1.2;
 }
 
 function updateWaves(dt) {
@@ -567,11 +705,11 @@ function updateWaves(dt) {
   if (waveSpawned < waveTotal) {
     waveSpawnT -= dt;
     if (waveSpawnT <= 0) {
-      const speed = Math.min(3.5, 1.2 + (wave - 1) * 0.15);
+      const speed = Math.min(3.5, 1.3 + (wave - 1) * 0.15);
       const hp = 3 + (wave - 1) * 1;
       spawnGhost(speed, hp, Math.floor(Math.random() * 3));
       waveSpawned++;
-      waveSpawnT = Math.max(0.4, 1.2 - wave * 0.05);
+      waveSpawnT = Math.max(0.4, 1.1 - wave * 0.05);
     }
   } else {
     const alive = ghosts.filter(g => !g.dying).length;
@@ -592,22 +730,22 @@ function resetGhosts() {
 
 // ==================== Bullets & Particles ====================
 const bullets = [];
-const bulletGeo = new THREE.SphereGeometry(0.06, 4, 3);
-const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffee88 });
+const bulletGeo = new THREE.SphereGeometry(0.07, 4, 3);
+const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffe070 });
 
 const particles = [];
 const particleGeo = new THREE.PlaneGeometry(0.12, 0.12);
 
 function spawnParticles(x, y, z, color, count) {
-  if (particles.length > 40) return;
-  for (let i = 0; i < count && particles.length < 40; i++) {
+  if (particles.length > 35) return;
+  for (let i = 0; i < count && particles.length < 35; i++) {
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(particleGeo, mat);
     mesh.position.set(x, y, z);
     scene.add(mesh);
     const a = Math.random() * Math.PI * 2;
     const e = (Math.random() - 0.3) * Math.PI;
-    const v = 2 + Math.random() * 3;
+    const v = 2.5 + Math.random() * 3;
     particles.push({
       mesh,
       vx: Math.cos(a) * Math.cos(e) * v,
@@ -634,7 +772,7 @@ function updateParticles(dt) {
 }
 
 let ammo = 30, maxAmmo = 30, reloadT = 0, shootCD = 0;
-const SHOOT_RATE = 0.14;
+const SHOOT_RATE = 0.12;
 
 function shoot() {
   if (ammo <= 0) { sfx.noAmmo(); return; }
@@ -656,7 +794,7 @@ function shoot() {
       const g = ghosts.find(g => g.mesh === obj);
       if (g && !g.dying) {
         g.hp--;
-        spawnParticles(hits[0].point.x, hits[0].point.y, hits[0].point.z, 0xff2020, 8);
+        spawnParticles(hits[0].point.x, hits[0].point.y, hits[0].point.z, 0xff3030, 8);
         sfx.hitGhost();
         if (g.hp <= 0) killGhost(g);
       }
@@ -666,7 +804,7 @@ function shoot() {
   const bullet = new THREE.Mesh(bulletGeo, bulletMat);
   bullet.position.copy(origin);
   scene.add(bullet);
-  bullets.push({ mesh: bullet, pos: origin.clone(), vel: dir.clone().multiplyScalar(60), life: 0.4 });
+  bullets.push({ mesh: bullet, pos: origin.clone(), vel: dir.clone().multiplyScalar(70), life: 0.35 });
 }
 
 function updateBullets(dt) {
@@ -687,7 +825,7 @@ function updateShooting(dt) {
   }
   if (ammo <= 0) {
     reloadT += dt;
-    if (reloadT >= 1.2) {
+    if (reloadT >= 1.0) {
       ammo = maxAmmo;
       reloadT = 0;
       updateHUD();
@@ -696,13 +834,9 @@ function updateShooting(dt) {
   } else reloadT = 0;
 }
 
-// ==================== Game state ====================
-const game = {
-  running: false, score: 0, wave: 1, kills: 0,
-  startTime: 0,
-};
+// ==================== Game State ====================
+const game = { running: false, score: 0, wave: 1, kills: 0, startTime: 0 };
 
-// ==================== HUD ====================
 function updateHUD() {
   document.getElementById('healthFill').style.width = Math.max(0, player.health / player.maxHealth * 100) + '%';
   document.getElementById('ammoNum').innerHTML = ammo + '<small>/∞</small>';
@@ -715,23 +849,20 @@ function damagePlayer(amount) {
   updateHUD();
   const dmg = document.getElementById('damageOverlay');
   dmg.classList.add('flash');
-  setTimeout(() => dmg.classList.remove('flash'), 60);
-  // Screen shake
-  canvas.style.transform = `translate(${(Math.random()-0.5)*8}px, ${(Math.random()-0.5)*8}px)`;
-  setTimeout(() => canvas.style.transform = 'translate(0,0)', 80);
+  setTimeout(() => dmg.classList.remove('flash'), 70);
   if (player.health <= 0) endGame();
 }
 
-// ==================== Player update ====================
+// ==================== Player Update ====================
 function updatePlayer(dt) {
   // Look
-  player.yaw -= input.mouseDX * 0.0022;
-  player.pitch -= input.mouseDY * 0.0022;
+  player.yaw -= input.mouseDX * 0.0024;
+  player.pitch -= input.mouseDY * 0.0024;
   const maxPitch = Math.PI / 2 - 0.05;
   player.pitch = Math.max(-maxPitch, Math.min(maxPitch, player.pitch));
   input.mouseDX = 0; input.mouseDY = 0;
 
-  // Move input
+  // Movement
   let mx = 0, mz = 0;
   if (input.forward) mz -= 1;
   if (input.backward) mz += 1;
@@ -742,7 +873,8 @@ function updatePlayer(dt) {
   const len = Math.hypot(mx, mz);
   if (len > 1) { mx /= len; mz /= len; }
 
-  const speed = (input.run || input.touchRun) ? player.runSpeed : player.speed;
+  const running = input.run || input.touchRun;
+  const speed = running ? player.runSpeed : player.speed;
   const sinY = Math.sin(player.yaw), cosY = Math.cos(player.yaw);
   const wx = mx * cosY - mz * sinY;
   const wz = mx * sinY + mz * cosY;
@@ -752,7 +884,7 @@ function updatePlayer(dt) {
   if (!collides(player.pos.x + dx, player.pos.z)) player.pos.x += dx;
   if (!collides(player.pos.x, player.pos.z + dz)) player.pos.z += dz;
 
-  // Gravity/jump
+  // Jump
   if ((input.jump || input.touchJump) && player.onGround) {
     player.vel.y = player.jumpForce;
     player.onGround = false;
@@ -766,40 +898,51 @@ function updatePlayer(dt) {
     player.onGround = true;
   }
 
-  // Head bob
+  // Head bob + footstep
   const moving = len > 0.1;
-  if (moving && player.onGround) player.bob += dt * ((input.run || input.touchRun) ? 14 : 9);
-  else player.bob *= (1 - dt * 5);
-  const bobAmp = moving && player.onGround ? ((input.run || input.touchRun) ? 0.055 : 0.032) : 0;
+  if (moving && player.onGround) {
+    player.bob += dt * (running ? 15 : 10);
+    player.stepTimer -= dt;
+    if (player.stepTimer <= 0) {
+      sfx.step();
+      player.stepTimer = running ? 0.28 : 0.42;
+    }
+  } else {
+    player.bob *= (1 - dt * 5);
+    player.stepTimer = 0;
+  }
+  const bobAmp = moving && player.onGround ? (running ? 0.05 : 0.03) : 0;
   const bobY = Math.sin(player.bob) * bobAmp;
 
-  // Apply camera
+  // Camera
   camera.position.set(player.pos.x, player.pos.y + bobY, player.pos.z);
   camera.rotation.y = player.yaw;
   camera.rotation.x = player.pitch;
   camera.rotation.z = 0;
 
-  // Flashlight follows
+  // Flashlight
   flashlight.position.copy(camera.position);
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
-  flashlight.target.position.copy(camera.position).add(dir.multiplyScalar(5));
+  flashlight.target.position.copy(camera.position).add(dir.multiplyScalar(6));
   flashlight.target.updateMatrixWorld();
 }
 
-// ==================== Game loop ====================
+// ==================== Loop (سلس) ====================
 let lastTime = 0, animId = null;
+const TARGET_DT = 1 / 60;
 
 function loop(now) {
   animId = requestAnimationFrame(loop);
-  if (!lastTime) lastTime = now;
+  if (!lastTime) { lastTime = now; return; }
   let dt = (now - lastTime) / 1000;
   lastTime = now;
-  if (dt > 0.05) dt = 0.05;
+  if (dt > 0.08) dt = 0.08;
+  if (dt <= 0) return;
 
   if (game.running) {
-    // Sub-step for smoothness
-    const steps = Math.min(3, Math.max(1, Math.round(dt / 0.016)));
+    // Sub-stepping لضمان سلاسة
+    const steps = Math.max(1, Math.min(4, Math.round(dt / TARGET_DT)));
     const sdt = dt / steps;
     for (let i = 0; i < steps; i++) {
       updatePlayer(sdt);
@@ -820,10 +963,15 @@ function startLoop() {
   animId = requestAnimationFrame(loop);
 }
 
-// ==================== Game control ====================
+// ==================== Start/End ====================
 function startGame() {
   initAudio();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+  // طلب الوضع الأفقي على الجوال
+  if (IS_MOBILE && screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
 
   resetGhosts();
   bullets.forEach(b => scene.remove(b.mesh));
@@ -838,6 +986,7 @@ function startGame() {
   player.health = player.maxHealth;
   player.onGround = true;
   player.bob = 0;
+  player.stepTimer = 0;
 
   Object.keys(input).forEach(k => { if (typeof input[k] === 'boolean') input[k] = false; });
   input.joyX = 0; input.joyY = 0; input.mouseDX = 0; input.mouseDY = 0;
@@ -851,10 +1000,14 @@ function startGame() {
   document.getElementById('startScreen').classList.remove('show');
   document.getElementById('overScreen').classList.remove('show');
   document.getElementById('hud').classList.add('show');
-  if (IS_TOUCH) document.getElementById('touchControls').classList.add('show');
+  if (IS_TOUCH) {
+    document.getElementById('touchControls').classList.add('show');
+    document.getElementById('lookArea').classList.add('show');
+  }
 
   updateHUD();
   startLoop();
+  startAmbient();
 
   if (!IS_TOUCH) document.getElementById('hint').classList.add('show');
 
@@ -865,6 +1018,7 @@ function endGame() {
   game.running = false;
   document.getElementById('hud').classList.remove('show');
   document.getElementById('touchControls').classList.remove('show');
+  document.getElementById('lookArea').classList.remove('show');
   document.getElementById('hint').classList.remove('show');
   if (document.pointerLockElement) document.exitPointerLock();
 
@@ -873,6 +1027,21 @@ function endGame() {
   document.getElementById('finalWave').textContent = game.wave;
   document.getElementById('finalTime').textContent = elapsed + 's';
   document.getElementById('overScreen').classList.add('show');
+}
+
+// ==================== Ambient ====================
+let ambientOsc = null;
+function startAmbient() {
+  if (!audioCtx || ambientOsc) return;
+  try {
+    ambientOsc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    ambientOsc.type = 'sine';
+    ambientOsc.frequency.setValueAtTime(50, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.015, audioCtx.currentTime);
+    ambientOsc.connect(g); g.connect(audioCtx.destination);
+    ambientOsc.start();
+  } catch(e) {}
 }
 
 // ==================== Buttons ====================
@@ -885,39 +1054,30 @@ function onResize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
+  updateRotateMsg();
 }
 window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', () => setTimeout(updateRotateMsg, 200));
 
-// ==================== Ambient sound ====================
-let ambientOsc = null;
-function startAmbient() {
-  if (!audioCtx || ambientOsc) return;
-  try {
-    ambientOsc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    ambientOsc.type = 'sine';
-    ambientOsc.frequency.setValueAtTime(45, audioCtx.currentTime);
-    g.gain.setValueAtTime(0.02, audioCtx.currentTime);
-    ambientOsc.connect(g); g.connect(audioCtx.destination);
-    ambientOsc.start();
-  } catch(e) {}
+function updateRotateMsg() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const msg = document.getElementById('rotateMsg');
+  if (IS_TOUCH && isPortrait && !game.running) {
+    msg.classList.add('show');
+  } else {
+    msg.classList.remove('show');
+  }
 }
+updateRotateMsg();
 
-// Start ambient when game starts
-const _origStartGame = startGame;
-startGame = function() {
-  _origStartGame();
-  startAmbient();
-};
-
-// ==================== Prevent defaults ====================
+// ==================== Prevent Defaults ====================
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('dragstart', e => e.preventDefault());
 
 // ==================== Init ====================
 updateHUD();
 startLoop();
-console.log('✅ ATLAS — اللعبة جاهزة');
+console.log('✅ ATLAS — جاهزة');
 </script>
 </body>
 </html>
