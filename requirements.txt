@@ -1,0 +1,6 @@
+python-telegram-bot==21.11.1
+pandas
+openpyxl
+xlrd
+pdfplumber
+python-docx
