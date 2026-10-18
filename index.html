@@ -3,413 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>شطرنج أطلس</title>
+<title>شطرنج</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent !important; user-select: none; }
-body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #121212; color: #eee; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-#game-wrapper { display: flex; flex-direction: column; width: 100%; height: 100%; max-width: 600px; padding: 10px; position: relative; }
-.player-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 4px; }
-.player-info { display: flex; align-items: center; gap: 8px; }
-.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #333; border: 2px solid #555; }
-.player-name { font-size: 15px; font-weight: 600; }
-.timer { background: #2a2a2a; padding: 4px 12px; border-radius: 6px; font-family: monospace; font-size: 18px; font-weight: bold; min-width: 70px; text-align: center; transition: 0.3s; }
-.timer.active { background: #2b6e2b; color: #fff; }
-.timer.low { background: #8b1e1e; color: #fff; animation: pulse 1s infinite; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-#board-container { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 75vh; margin: auto 0; display: flex; justify-content: center; align-items: center; }
-#board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.6); touch-action: none; background: #b58863; }
-.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: none; }
-.light { background: #eeddcc; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1e1e1e; color: #eee;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh; overflow-x: hidden;
+}
+#topbar, #bottombar {
+  width: min(95vw, 95vh, 600px);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 4px; font-size: 15px; font-weight: 600;
+}
+#topbar { margin-bottom: 4px; }
+#bottombar { margin-top: 4px; }
+#oppTimer, #myTimer {
+  background: #333; padding: 4px 12px; border-radius: 6px;
+  font-family: monospace; font-size: 18px; letter-spacing: 1px; min-width: 72px; text-align: center;
+}
+#oppTimer.low, #myTimer.low { background: #8b1e1e; color: #fff; }
+#board {
+  display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+  width: min(95vw, 95vh, 600px); aspect-ratio: 1;
+  border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+.light { background: #f0d9b5; }
 .dark { background: #b58863; }
-.square.selected { box-shadow: inset 0 0 0 4px rgba(255, 215, 0, 0.8); }
-.square.valid::after { content: ''; position: absolute; width: 30%; height: 30%; border-radius: 50%; background: rgba(0, 0, 0, 0.25); pointer-events: none; }
-.square.capture::after { content: ''; position: absolute; inset: 5%; border-radius: 50%; border: 4px solid rgba(220, 50, 50, 0.8); pointer-events: none; }
-.piece { font-size: calc(min(95vw, 75vh) / 8 * 0.85); line-height: 1; pointer-events: none; z-index: 10; }
-.piece.w { color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 2px #000; }
-.piece.b { color: #1a1a1a; text-shadow: 0 2px 4px rgba(255,255,255,0.2), 0 0 2px #fff; }
-#status { margin-top: 10px; padding: 6px 16px; font-size: 16px; font-weight: 600; color: #aaa; text-align: center; }
-.drag-ghost { position: fixed; pointer-events: none; z-index: 1000; font-size: calc(min(95vw, 75vh) / 8 * 0.85); transform: translate(-50%, -50%); }
-
-/* شاشة النهاية */
-#end-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(18,18,18,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; }
-#end-screen.show { display: flex; }
-.end-title { font-size: 32px; font-weight: bold; margin-bottom: 30px; }
-.end-title.win { color: #4caf50; }
-.end-title.lose { color: #f44336; }
-.end-players { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
-.end-player { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.end-player img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid #555; object-fit: cover; }
-.end-player.winner img { border-color: #ffd700; box-shadow: 0 0 15px #ffd700; }
-.end-player .name { font-size: 18px; font-weight: bold; }
-.end-player .result { font-size: 14px; color: #aaa; }
-.vs { font-size: 24px; font-weight: bold; color: #ffd84a; }
+.square.selected { box-shadow: inset 0 0 0 4px #f7d84a; }
+.square.valid::after {
+  content: ''; position: absolute; width: 30%; height: 30%;
+  border-radius: 50%; background: rgba(0,100,0,.55); pointer-events: none;
+}
+.square.capture::after {
+  content: ''; position: absolute; inset: 5%; border-radius: 50%;
+  border: 5px solid rgba(200,30,30,.8); pointer-events: none;
+}
+.piece {
+  font-size: calc(min(95vw,95vh,600px) / 8 * 0.82); line-height: 1;
+  pointer-events: none;
+}
+.piece.w { color: #ffffff; -webkit-text-stroke: 1.2px #1a1a1a; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.piece.b { color: #1a1a1a; -webkit-text-stroke: 1px rgba(255,255,255,.35); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+#status { margin-top: 10px; padding: 6px 16px; font-size: 14px; color: #aaa; text-align: center; min-height: 20px; }
+#status.end { color: #ffd84a; font-size: 17px; font-weight: 700; }
 </style>
 </head>
 <body>
-
-<div id="game-wrapper">
-  <div class="player-bar" id="topbar">
-    <div class="player-info">
-      <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
-      <span id="oppName" class="player-name">الخصم</span>
-    </div>
-    <div id="oppTimer" class="timer">10:00</div>
-  </div>
-
-  <div id="board-container">
-    <div id="board"></div>
-    <div id="end-screen">
-      <div id="end-title" class="end-title">فوز</div>
-      <div class="end-players">
-        <div id="p1-box" class="end-player">
-          <img id="p1-img" src="">
-          <div id="p1-name" class="name"></div>
-          <div id="p1-res" class="result"></div>
-        </div>
-        <div class="vs">VS</div>
-        <div id="p2-box" class="end-player">
-          <img id="p2-img" src="">
-          <div id="p2-name" class="name"></div>
-          <div id="p2-res" class="result"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="player-bar" id="bottombar">
-    <div class="player-info">
-      <img id="myAvatar" class="avatar" src="https://ui-avatars.com/api/?name=M&background=333&color=fff">
-      <span id="myName" class="player-name">أنا</span>
-    </div>
-    <div id="myTimer" class="timer active">10:00</div>
-  </div>
-  
-  <div id="status">جارٍ التحميل...</div>
-</div>
-
+<div id="topbar"><span id="oppName">الخصم</span><span id="oppTimer">10:00</span></div>
+<div id="board"></div>
+<div id="bottombar"><span id="myTimer">10:00</span><span id="myName">أنا</span></div>
+<div id="status">جارٍ الاتصال...</div>
 <script>
 (function(){
 'use strict';
-try {
-  if (typeof Chess === 'undefined') {
-    document.getElementById('status').textContent = "فشل تحميل محرك الشطرنج. يرجى إغلاق التطبيق وفتحه مرة أخرى.";
-    document.getElementById('status').style.color = "red";
-    return;
+var tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#1e1e1e'); } catch(e){} }
+
+function parseParams(){
+  var sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+  if (sp) {
+    var p = sp.split('_');
+    if (p.length === 3) return { room: p[0], player: p[1].replace('p',''), color: p[2] };
   }
+  var q = new URLSearchParams(location.search);
+  return { room: q.get('room'), player: q.get('p') || '1', color: q.get('color') || 'w' };
+}
+var P = parseParams();
+var room = P.room, player = P.player, myColor = P.color;
+var oppColor = myColor === 'w' ? 'b' : 'w';
+var myName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || (player === '1' ? 'لاعب 1' : 'لاعب 2');
+var oppName = 'بانتظار الخصم...';
+var game = new Chess();
+var selected = null, validTargets = [];
+var myTime = 600000, oppTime = 600000;
+var timerInterval = null, connected = false, gameOver = false;
+var peer = null, conn = null;
+var files = ['a','b','c','d','e','f','g','h'];
+var SYM = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
 
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#121212'); tg.setBackgroundColor('#121212'); } catch(e){} }
+function el(id){ return document.getElementById(id); }
+function formatTime(ms){ if(ms<0) ms=0; var s=Math.ceil(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function updateTimersUI(){
+  el('myTimer').textContent = formatTime(myTime);
+  el('oppTimer').textContent = formatTime(oppTime);
+  el('myTimer').classList.toggle('low', myTime < 60000);
+  el('oppTimer').classList.toggle('low', oppTime < 60000);
+}
 
-  function parseParams(){
-    var sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
-    if (sp) {
-      var p = sp.split('_');
-      if (p.length === 3) return { mode: 'pvp', room: p[0], player: p[1].replace('p',''), color: p[2] };
-    }
-    var q = new URLSearchParams(location.search);
-    return { mode: q.get('mode') || 'pvp', room: q.get('room'), player: q.get('p') || '1', color: q.get('color') || 'w', level: parseInt(q.get('level')) || 1 };
-  }
-
-  var P = parseParams();
-  var isAI = P.mode === 'ai';
-  var myColor = isAI ? 'w' : P.color;
-  var game = new Chess();
-  var selected = null, validTargets = [];
-  var myTime = 600000, oppTime = 600000;
-  var timerInterval = null, connected = false, gameOver = false;
-  var peer = null, conn = null;
-  var files = ['a','b','c','d','e','f','g','h'];
-  var SYM = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
-  var myAvatarUrl = 'https://ui-avatars.com/api/?name=M&background=333&color=fff';
-  var oppAvatarUrl = 'https://ui-avatars.com/api/?name=O&background=333&color=fff';
-
-  function el(id){ return document.getElementById(id); }
-
-  function loadUserInfo(){
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      var u = tg.initDataUnsafe.user;
-      el('myName').textContent = u.first_name || 'أنا';
-      if (u.photo_url) { el('myAvatar').src = u.photo_url; myAvatarUrl = u.photo_url; }
-    }
-    if (isAI) {
-      el('oppName').textContent = P.level === 1 ? 'بوت (سهل)' : P.level === 2 ? 'بوت (متوسط)' : 'بوت (صعب)';
-      oppAvatarUrl = 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png';
-      el('oppAvatar').src = oppAvatarUrl;
-    }
-  }
-
-  function formatTime(ms){ if(ms<0) ms=0; var s = Math.ceil(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
-  function updateTimersUI(){
-    el('myTimer').textContent = formatTime(myTime);
-    el('oppTimer').textContent = formatTime(oppTime);
-    el('myTimer').classList.toggle('low', myTime < 60000);
-    el('oppTimer').classList.toggle('low', oppTime < 60000);
-    if(!gameOver) {
-      el('myTimer').classList.toggle('active', game.turn() === myColor);
-      el('oppTimer').classList.toggle('active', game.turn() !== myColor);
-    }
-  }
-
-  function renderBoard(){
-    var b = el('board'); b.innerHTML = '';
-    var fi = [0,1,2,3,4,5,6,7], ri = [7,6,5,4,3,2,1,0];
-    if (myColor === 'b') { fi.reverse(); ri = [0,1,2,3,4,5,6,7]; }
-    for (var r = 0; r < 8; r++) {
-      for (var f = 0; f < 8; f++) {
-        var fi0 = fi[f], ri0 = ri[r];
-        var square = files[fi0] + (ri0 + 1);
-        var isLight = (fi0 + ri0) % 2 === 1;
-        var sq = document.createElement('div');
-        sq.className = 'square ' + (isLight ? 'light' : 'dark');
-        sq.dataset.square = square;
-        var p = game.get(square);
-        if (p) {
-          var sp = document.createElement('span');
-          sp.className = 'piece ' + p.color;
-          sp.textContent = SYM[p.type];
-          sq.appendChild(sp);
-        }
-        if (selected === square) sq.classList.add('selected');
-        if (validTargets.indexOf(square) >= 0) sq.classList.add(p ? 'capture' : 'valid');
-        b.appendChild(sq);
+function renderBoard(){
+  var b = el('board'); b.innerHTML = '';
+  var fi = [0,1,2,3,4,5,6,7], ri = [7,6,5,4,3,2,1,0];
+  if (myColor === 'b') { fi.reverse(); ri = [0,1,2,3,4,5,6,7]; }
+  for (var r = 0; r < 8; r++) {
+    for (var f = 0; f < 8; f++) {
+      var fi0 = fi[f], ri0 = ri[r];
+      var square = files[fi0] + (ri0 + 1);
+      var isLight = (fi0 + ri0) % 2 === 1;
+      var sq = document.createElement('div');
+      sq.className = 'square ' + (isLight ? 'light' : 'dark');
+      sq.dataset.square = square;
+      var p = game.get(square);
+      if (p) {
+        var sp = document.createElement('span');
+        sp.className = 'piece ' + p.color;
+        sp.textContent = SYM[p.type];
+        sq.appendChild(sp);
       }
+      if (selected === square) sq.classList.add('selected');
+      if (validTargets.indexOf(square) >= 0) sq.classList.add(p ? 'capture' : 'valid');
+      (function(sc){ sq.addEventListener('click', function(){ onSquareClick(sc); }); })(square);
+      b.appendChild(sq);
     }
   }
+}
 
-  var isDragging = false, dragSquare = null, ghostEl = null;
-  var boardEl = el('board');
+var audioCtx = null;
+function playSound(type){
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    var f = { move: 620, capture: 300, start: 880, end: 220 };
+    o.frequency.value = f[type] || 500;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+    o.start(); o.stop(audioCtx.currentTime + 0.2);
+  } catch(e){}
+}
 
-  boardEl.addEventListener('pointerdown', function(e){
-    if (gameOver || (!connected && !isAI) || game.turn() !== myColor) return;
-    var sqEl = e.target.closest('.square');
-    if (!sqEl) return;
-    var square = sqEl.dataset.square;
-    var piece = game.get(square);
-    if (piece && piece.color === myColor) {
-      isDragging = true; dragSquare = square; selected = square;
-      validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
-      ghostEl = document.createElement('span');
-      ghostEl.className = 'piece ' + piece.color + ' drag-ghost';
-      ghostEl.textContent = SYM[piece.type];
-      ghostEl.style.left = e.clientX + 'px'; ghostEl.style.top = e.clientY + 'px';
-      document.body.appendChild(ghostEl);
-      renderBoard();
-    } else { selected = null; validTargets = []; renderBoard(); }
-  });
+function send(msg){ if (conn && connected) { try { conn.send(msg); } catch(e){} } }
 
-  document.addEventListener('pointermove', function(e){
-    if (!isDragging || !ghostEl) return;
-    ghostEl.style.left = e.clientX + 'px'; ghostEl.style.top = e.clientY + 'px';
-  });
-
-  document.addEventListener('pointerup', function(e){
-    if (!isDragging) return;
-    isDragging = false;
-    if (ghostEl) { ghostEl.remove(); ghostEl = null; }
-    var targetSquare = null;
-    var squares = document.querySelectorAll('.square');
-    for (var i = 0; i < squares.length; i++) {
-      var rect = squares[i].getBoundingClientRect();
-      if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-        targetSquare = squares[i].dataset.square; break;
-      }
-    }
-    if (targetSquare && validTargets.indexOf(targetSquare) >= 0) { makeMove(dragSquare, targetSquare); }
-    else { selected = null; validTargets = []; renderBoard(); }
-  });
-
-  var audioCtx = null;
-  function playSound(type){
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
-      var f = { move: 600, capture: 300, start: 800, end: 200 };
-      o.frequency.value = f[type] || 500; o.type = 'sine';
-      g.gain.setValueAtTime(0.15, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-      o.start(); o.stop(audioCtx.currentTime + 0.2);
-    } catch(e){}
-  }
-
-  function makeMove(from, to, promotion){
+function onSquareClick(square){
+  if (gameOver || !connected) return;
+  if (game.turn() !== myColor) return;
+  if (selected && validTargets.indexOf(square) >= 0) {
+    var from = selected;
     var moving = game.get(from);
-    if(!moving) return false;
-    var mv = { from: from, to: to };
-    if (moving.type === 'p' && (to[1] === '8' || to[1] === '1')) mv.promotion = promotion || 'q';
+    var isPromo = moving && moving.type === 'p' && (square[1] === '8' || square[1] === '1');
+    var mv = { from: from, to: square };
+    if (isPromo) mv.promotion = 'q';
     var res = game.move(mv);
     if (res) {
-      selected = null; validTargets = []; renderBoard(); updateTimersUI(); lastTick = Date.now();
+      selected = null; validTargets = [];
+      send({ type:'move', from: mv.from, to: mv.to, promotion: mv.promotion, remaining: myTime });
+      renderBoard(); updateTimersUI();
       playSound(res.captured ? 'capture' : 'move');
       checkEnd();
-      if (isAI && !gameOver && game.turn() !== myColor) triggerAIMove();
-      else if (!isAI) send({ type:'move', from: from, to: to, promotion: mv.promotion, remaining: myTime });
-      return true;
-    }
-    return false;
-  }
-
-  function send(msg){ if (conn && connected) { try { conn.send(msg); } catch(e){} } }
-
-  function checkEnd(){
-    if (!game.game_over()) return;
-    var msg = '', winner = null;
-    if (game.in_checkmate()) {
-      winner = game.turn() === 'w' ? 'b' : 'w';
-      msg = game.turn() === myColor ? 'كش مات — خسرت' : 'كش مات — فزت! 🎉';
-    } else if (game.in_stalemate() || game.in_draw()) { msg = 'تعادل'; }
-    endGame(msg, winner);
-  }
-
-  function endGame(reason, winnerColor){
-    if (gameOver) return;
-    gameOver = true; clearInterval(timerInterval);
-    el('status').textContent = reason; playSound('end');
-    
-    var screen = el('end-screen'); screen.classList.add('show');
-    var title = el('end-title');
-    
-    var p1Win = winnerColor === myColor;
-    var p2Win = winnerColor && winnerColor !== myColor;
-    
-    if (p1Win) { title.textContent = 'أنت فزت! 🏆'; title.className = 'end-title win'; }
-    else if (p2Win) { title.textContent = 'أنت خسرت 💔'; title.className = 'end-title lose'; }
-    else { title.textContent = 'تعادل 🤝'; title.className = 'end-title'; }
-    
-    el('p1-img').src = myAvatarUrl;
-    el('p1-name').textContent = el('myName').textContent;
-    el('p1-res').textContent = p1Win ? 'فوز' : (p2Win ? 'خسارة' : 'تعادل');
-    
-    el('p2-img').src = oppAvatarUrl;
-    el('p2-name').textContent = el('oppName').textContent;
-    el('p2-res').textContent = p2Win ? 'فوز' : (p1Win ? 'خسارة' : 'تعادل');
-    
-    if (p1Win) el('p1-box').classList.add('winner');
-    if (p2Win) el('p2-box').classList.add('winner');
-  }
-
-  var lastTick = Date.now();
-  function startTimers(){
-    clearInterval(timerInterval);
-    el('status').textContent = 'اللعبة بدأت!'; el('status').className = '';
-    lastTick = Date.now();
-    timerInterval = setInterval(function(){
-      if (gameOver) return;
-      var now = Date.now(); var delta = now - lastTick; lastTick = now;
-      if (game.turn() === myColor) {
-        myTime -= delta;
-        if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); if(!isAI) send({ type:'timeout', loser: myColor }); }
-      } else {
-        oppTime -= delta;
-        if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); if(!isAI) send({ type:'timeout', loser: myColor === 'w' ? 'b' : 'w' }); }
-      }
-      updateTimersUI();
-    }, 100);
-    playSound('start');
-  }
-
-  var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-  function evaluateBoard(game) {
-    var totalEval = 0; var board = game.board();
-    for (var i = 0; i < 8; i++) {
-      for (var j = 0; j < 8; j++) {
-        var piece = board[i][j];
-        if (piece) { var value = pieceValues[piece.type]; totalEval += (piece.color === 'w' ? value : -value); }
-      }
-    }
-    return totalEval;
-  }
-
-  function minimax(game, depth, isMaximizing) {
-    if (depth === 0 || game.game_over()) return evaluateBoard(game);
-    var moves = game.moves();
-    if (isMaximizing) {
-      var maxEval = -Infinity;
-      for (var i = 0; i < moves.length; i++) { game.move(moves[i]); var eval = minimax(game, depth - 1, false); game.undo(); maxEval = Math.max(maxEval, eval); }
-      return maxEval;
-    } else {
-      var minEval = Infinity;
-      for (var i = 0; i < moves.length; i++) { game.move(moves[i]); var eval = minimax(game, depth - 1, true); game.undo(); minEval = Math.min(minEval, eval); }
-      return minEval;
+      return;
     }
   }
-
-  function triggerAIMove(){
-    if (gameOver || game.turn() === myColor) return;
-    el('status').textContent = 'البوت يفكر...';
-    setTimeout(function(){
-      var moves = game.moves({ verbose: true });
-      if(moves.length === 0) return;
-      var bestMove = null;
-      if (P.level === 1) {
-        var captures = moves.filter(function(m){ return m.captured; });
-        bestMove = (captures.length > 0 && Math.random() > 0.5) ? captures[Math.floor(Math.random()*captures.length)] : moves[Math.floor(Math.random()*moves.length)];
-      } else {
-        var depth = P.level === 2 ? 2 : 3;
-        var isMaximizing = game.turn() === 'w';
-        var bestEval = isMaximizing ? -Infinity : Infinity;
-        moves.sort(function() { return 0.5 - Math.random(); });
-        for (var i = 0; i < moves.length; i++) {
-          game.move(moves[i]); var eval = minimax(game, depth - 1, !isMaximizing); game.undo();
-          if (isMaximizing) { if (eval > bestEval) { bestEval = eval; bestMove = moves[i]; } }
-          else { if (eval < bestEval) { bestEval = eval; bestMove = moves[i]; } }
-        }
-      }
-      if (bestMove) { makeMove(bestMove.from, bestMove.to, bestMove.promotion); el('status').textContent = 'دورك'; }
-    }, 200);
+  var piece = game.get(square);
+  if (piece && piece.color === myColor) {
+    selected = square;
+    validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
+    renderBoard();
+  } else {
+    selected = null; validTargets = [];
+    renderBoard();
   }
-
-  function initAI(){ connected = true; startTimers(); }
-
-  function handleMessage(msg){
-    if (msg.type === 'hello') {
-      el('oppName').textContent = msg.name || 'الخصم';
-      if (msg.photo) { el('oppAvatar').src = msg.photo; oppAvatarUrl = msg.photo; }
-      startTimers();
-    } else if (msg.type === 'move') {
-      if (makeMove(msg.from, msg.to, msg.promotion)) { oppTime = msg.remaining; updateTimersUI(); }
-    } else if (msg.type === 'timeout') {
-      if (msg.loser === myColor) endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w');
-      else endGame('فزت! نفد وقت الخصم', myColor);
-    }
-  }
-
-  function setupConn(){
-    conn.on('open', function(){
-      connected = true; el('status').textContent = 'متصل! جارٍ بدء اللعبة...';
-      send({ type:'hello', name: el('myName').textContent, photo: myAvatarUrl });
-    });
-    conn.on('data', handleMessage);
-    conn.on('close', function(){ connected = false; if (!gameOver) el('status').textContent = 'انقطع الاتصال بالخصم'; });
-  }
-
-  function initPeer(){
-    var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } };
-    if (P.player === '1') {
-      peer = new Peer('chess-' + P.room + '-host', cfg);
-      peer.on('open', function(){ el('status').textContent = 'بانتظار انضمام الصديق...'; });
-      peer.on('connection', function(c){ conn = c; setupConn(); });
-      peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type; });
-    } else {
-      peer = new Peer(cfg);
-      peer.on('open', function(){ conn = peer.connect('chess-' + P.room + '-host', { reliable: true }); setupConn(); });
-      peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type + ' — تأكد أن صديقك فتح اللعبة'; });
-    }
-  }
-
-  loadUserInfo(); renderBoard(); updateTimersUI();
-
-  if (isAI) { initAI(); }
-  else if (P.room) { initPeer(); }
-  else { el('status').textContent = 'رابط غير صالح'; }
-
-} catch (err) {
-  document.getElementById('status').textContent = "خطأ: " + err.message;
-  document.getElementById('status').style.color = "red";
 }
+
+function checkEnd(){
+  if (!game.game_over()) return;
+  var msg = '';
+  if (game.in_checkmate()) msg = game.turn() === myColor ? 'كش مات — خسرت' : 'كش مات — فزت!';
+  else if (game.in_stalemate()) msg = 'تعادل (جمود)';
+  else if (game.in_draw()) msg = 'تعادل';
+  else msg = 'انتهت اللعبة';
+  endGame(msg);
+}
+
+function endGame(reason){
+  if (gameOver) return;
+  gameOver = true;
+  clearInterval(timerInterval);
+  el('status').textContent = reason;
+  el('status').className = 'end';
+  playSound('end');
+}
+
+function startTimers(){
+  clearInterval(timerInterval);
+  timerInterval = setInterval(function(){
+    if (gameOver) return;
+    if (game.turn() === myColor) {
+      myTime -= 100;
+      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك'); }
+    } else {
+      oppTime -= 100;
+      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم'); send({ type:'timeout', loser: oppColor }); }
+    }
+    updateTimersUI();
+  }, 100);
+}
+
+function handleMessage(msg){
+  if (msg.type === 'hello') {
+    oppName = msg.name || 'الخصم';
+    el('oppName').textContent = oppName;
+    el('status').textContent = 'اللعبة بدأت!';
+    playSound('start');
+    startTimers();
+  } else if (msg.type === 'move') {
+    var mv = { from: msg.from, to: msg.to };
+    if (msg.promotion) mv.promotion = msg.promotion;
+    var res = game.move(mv);
+    if (res) {
+      oppTime = msg.remaining;
+      renderBoard(); updateTimersUI();
+      playSound(res.captured ? 'capture' : 'move');
+      checkEnd();
+    }
+  } else if (msg.type === 'timeout') {
+    if (msg.loser === myColor) endGame('خسرت — نفد وقتك');
+    else endGame('فزت! نفد وقت الخصم');
+  }
+}
+
+function setupConn(){
+  conn.on('open', function(){
+    connected = true;
+    el('status').textContent = 'متصل! جارٍ بدء اللعبة...';
+    send({ type:'hello', name: myName });
+  });
+  conn.on('data', handleMessage);
+  conn.on('close', function(){
+    connected = false;
+    if (!gameOver) el('status').textContent = 'انقطع الاتصال بالخصم';
+  });
+}
+
+function initPeer(){
+  var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } };
+  if (player === '1') {
+    peer = new Peer('chess-' + room + '-host', cfg);
+    peer.on('open', function(){ el('status').textContent = 'بانتظار انضمام الصديق...'; });
+    peer.on('connection', function(c){ conn = c; setupConn(); });
+    peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type; });
+  } else {
+    peer = new Peer(cfg);
+    peer.on('open', function(){
+      conn = peer.connect('chess-' + room + '-host', { reliable: true });
+      setupConn();
+    });
+    peer.on('error', function(e){
+      el('status').textContent = 'خطأ: ' + e.type + ' — قد يكون الخصم لم يفتح اللعبة بعد';
+    });
+  }
+}
+
+el('myName').textContent = myName;
+el('oppName').textContent = oppName;
+renderBoard(); updateTimersUI();
+if (room) initPeer();
+else el('status').textContent = 'رابط غير صالح';
 })();
 </script>
 </body>
