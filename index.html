@@ -81,6 +81,12 @@ body {
 </style>
 </head>
 <body>
+
+<!-- أصوات Lichess الخشبية -->
+<audio id="sfx-move" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/Move.mp3" preload="auto"></audio>
+<audio id="sfx-capture" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/Capture.mp3" preload="auto"></audio>
+<audio id="sfx-start" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/GenericNotify.mp3" preload="auto"></audio>
+
 <div id="topbar">
   <div class="player-info">
     <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
@@ -249,57 +255,16 @@ document.addEventListener('pointerup', function(e){
   } else { selected = null; validTargets = []; renderBoard(); }
 });
 
-// --- الأصوات الطبيعية المريحة (Web Audio API) ---
-var audioCtx = null;
+// --- الأصوات ---
 function playSound(type){
   try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    var osc = audioCtx.createOscillator();
-    var gain = audioCtx.createGain();
-    
-    if (type === 'start') {
-       osc.type = 'sine';
-       osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-       osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-       osc.connect(gain); gain.connect(audioCtx.destination);
-       osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-       return;
+    var audioId = type === 'move' ? 'sfx-move' : type === 'capture' ? 'sfx-capture' : 'sfx-start';
+    var audio = el(audioId);
+    if (audio) {
+      audio.currentTime = 0;
+      audio.volume = 0.5; // خفض الصوت ليكون مريح
+      audio.play().catch(function(e){});
     }
-
-    // محاكاة صوت طقة الخشب الناعمة
-    var bufferSize = audioCtx.sampleRate * 0.03; // 30ms
-    var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    var data = buffer.getChannelData(0);
-    for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    
-    var noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
-    var noiseFilter = audioCtx.createBiquadFilter();
-    noiseFilter.type = 'lowpass';
-    noiseFilter.frequency.value = 1000; // فلتر لتنعيم الصوت
-    
-    var noiseGain = audioCtx.createGain();
-    noiseGain.gain.setValueAtTime(type === 'capture' ? 0.4 : 0.2, audioCtx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
-    
-    noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
-    
-    // طبقة الطقة العميقة
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(type === 'capture' ? 150 : 250, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.08);
-    gain.gain.setValueAtTime(type === 'capture' ? 0.6 : 0.4, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    
-    noise.start();
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.1);
   } catch(e){}
 }
 
@@ -440,7 +405,7 @@ function triggerAIMove(){
       }
     }
     if (bestMove) { makeMove(bestMove.from, bestMove.to, bestMove.promotion); el('status').textContent = 'دورك'; }
-  }, 600); // تأخير 600 مللي ثانية لتظهر حركة التايمر
+  }, 600);
 }
 
 // --- الاتصال ---
