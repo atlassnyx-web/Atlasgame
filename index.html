@@ -30,6 +30,7 @@ body {
   font-family: monospace; font-size: 18px; letter-spacing: 1px; min-width: 72px; text-align: center; transition: 0.3s;
 }
 #oppTimer.low, #myTimer.low { background: #8b1e1e; color: #fff; }
+#oppTimer.active, #myTimer.active { background: #2b6e2b; color: #fff; box-shadow: 0 0 10px rgba(43, 110, 43, 0.6); }
 #board-container { position: relative; width: min(95vw, 95vh, 600px); aspect-ratio: 1; }
 #board {
   display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
@@ -80,18 +81,12 @@ body {
 </style>
 </head>
 <body>
-
-<!-- الأصوات الخشبية المريحة من Chess.com -->
-<audio id="sfx-move" src="https://images.chesscomfiles.com/chess-themes/sounds/_mp3_/default/move-self.mp3" preload="auto"></audio>
-<audio id="sfx-capture" src="https://images.chesscomfiles.com/chess-themes/sounds/_mp3_/default/capture.mp3" preload="auto"></audio>
-<audio id="sfx-start" src="https://images.chesscomfiles.com/chess-themes/sounds/_mp3_/default/game-start.mp3" preload="auto"></audio>
-
 <div id="topbar">
   <div class="player-info">
     <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
     <span id="oppName">الخصم</span>
   </div>
-  <span id="oppTimer">10:00</span>
+  <span id="oppTimer" class="timer">10:00</span>
 </div>
 
 <div id="board-container">
@@ -119,7 +114,7 @@ body {
     <img id="myAvatar" class="avatar" src="https://ui-avatars.com/api/?name=M&background=333&color=fff">
     <span id="myName">أنا</span>
   </div>
-  <span id="myTimer">10:00</span>
+  <span id="myTimer" class="timer">10:00</span>
 </div>
 
 <div id="status">جارٍ التحميل...</div>
@@ -175,6 +170,11 @@ function updateTimersUI(){
   el('oppTimer').textContent = formatTime(oppTime);
   el('myTimer').classList.toggle('low', myTime < 60000);
   el('oppTimer').classList.toggle('low', oppTime < 60000);
+  
+  if (!gameOver) {
+    el('myTimer').classList.toggle('active', game.turn() === myColor);
+    el('oppTimer').classList.toggle('active', game.turn() !== myColor);
+  }
 }
 
 function renderBoard(){
@@ -249,16 +249,57 @@ document.addEventListener('pointerup', function(e){
   } else { selected = null; validTargets = []; renderBoard(); }
 });
 
-// --- تشغيل الأصوات ---
+// --- الأصوات الطبيعية المريحة (Web Audio API) ---
+var audioCtx = null;
 function playSound(type){
   try {
-    var audioId = type === 'move' ? 'sfx-move' : type === 'capture' ? 'sfx-capture' : 'sfx-start';
-    var audio = el(audioId);
-    if (audio) {
-      audio.currentTime = 0;
-      audio.volume = 0.6; // خفض الصوت ليكون مريح للأذن
-      audio.play().catch(function(e){});
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    
+    if (type === 'start') {
+       osc.type = 'sine';
+       osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+       osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+       osc.connect(gain); gain.connect(audioCtx.destination);
+       osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+       return;
     }
+
+    // محاكاة صوت طقة الخشب الناعمة
+    var bufferSize = audioCtx.sampleRate * 0.03; // 30ms
+    var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    
+    var noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    var noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.value = 1000; // فلتر لتنعيم الصوت
+    
+    var noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(type === 'capture' ? 0.4 : 0.2, audioCtx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
+    
+    noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+    
+    // طبقة الطقة العميقة
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(type === 'capture' ? 150 : 250, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(type === 'capture' ? 0.6 : 0.4, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    
+    noise.start();
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
   } catch(e){}
 }
 
@@ -325,12 +366,13 @@ function startTimers(){
   timerInterval = setInterval(function(){
     if (gameOver) return;
     var now = Date.now(); var delta = now - lastTick; lastTick = now;
+    
     if (game.turn() === myColor) {
-      myTime -= delta;
-      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); if(!isAI) send({ type:'timeout', loser: myColor }); }
+      myTime = Math.max(0, myTime - delta);
+      if (myTime === 0) { updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); if(!isAI) send({ type:'timeout', loser: myColor }); return; }
     } else {
-      oppTime -= delta;
-      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); if(!isAI) send({ type:'timeout', loser: oppColor }); }
+      oppTime = Math.max(0, oppTime - delta);
+      if (oppTime === 0) { updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); if(!isAI) send({ type:'timeout', loser: oppColor }); return; }
     }
     updateTimersUI();
   }, 100);
@@ -398,7 +440,7 @@ function triggerAIMove(){
       }
     }
     if (bestMove) { makeMove(bestMove.from, bestMove.to, bestMove.promotion); el('status').textContent = 'دورك'; }
-  }, 200);
+  }, 600); // تأخير 600 مللي ثانية لتظهر حركة التايمر
 }
 
 // --- الاتصال ---
@@ -409,7 +451,7 @@ function handleMessage(msg){
     el('oppName').textContent = oppName;
     el('oppAvatar').src = oppPhoto;
     el('status').textContent = 'اللعبة بدأت!';
-    playSound('start'); startTimers();
+    startTimers();
   } else if (msg.type === 'move') {
     var mv = { from: msg.from, to: msg.to };
     if (msg.promotion) mv.promotion = msg.promotion;
