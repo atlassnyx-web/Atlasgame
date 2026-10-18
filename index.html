@@ -3,98 +3,148 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>شطرنج</title>
+<title>chess67</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
-* { box-sizing: border-box; }
+* { 
+  box-sizing: border-box; 
+  -webkit-tap-highlight-color: transparent !important; 
+  user-select: none;
+}
 body {
   margin: 0; padding: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #1e1e1e; color: #eee;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #121212; color: #eee;
   display: flex; flex-direction: column; align-items: center;
   min-height: 100vh; overflow-x: hidden;
 }
-#topbar, #bottombar {
+.player-bar {
   width: min(95vw, 95vh, 600px);
   display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 4px; font-size: 15px; font-weight: 600;
+  padding: 8px 4px; margin: 4px 0;
 }
-#topbar { margin-bottom: 4px; }
-#bottombar { margin-top: 4px; }
-#oppTimer, #myTimer {
-  background: #333; padding: 4px 12px; border-radius: 6px;
-  font-family: monospace; font-size: 18px; letter-spacing: 1px; min-width: 72px; text-align: center;
+.player-info { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  object-fit: cover; background: #333; border: 2px solid #555;
 }
-#oppTimer.low, #myTimer.low { background: #8b1e1e; color: #fff; }
+.player-name { font-size: 15px; font-weight: 600; }
+.timer {
+  background: #2a2a2a; padding: 6px 14px; border-radius: 8px;
+  font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold;
+  min-width: 70px; text-align: center; transition: 0.3s;
+}
+.timer.active { background: #2b6e2b; color: #fff; }
+.timer.low { background: #8b1e1e; color: #fff; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 #board {
   display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
   width: min(95vw, 95vh, 600px); aspect-ratio: 1;
-  border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+  border-radius: 8px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  border: 4px solid #333;
 }
-.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
-.light { background: #f0d9b5; }
+.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; outline: none; }
+.light { background: #eeddcc; }
 .dark { background: #b58863; }
-.square.selected { box-shadow: inset 0 0 0 4px #f7d84a; }
+.square.selected { box-shadow: inset 0 0 0 4px rgba(255, 215, 0, 0.8); }
 .square.valid::after {
-  content: ''; position: absolute; width: 30%; height: 30%;
-  border-radius: 50%; background: rgba(0,100,0,.55); pointer-events: none;
+  content: ''; position: absolute; width: 32%; height: 32%;
+  border-radius: 50%; background: rgba(0, 0, 0, 0.2); pointer-events: none;
 }
 .square.capture::after {
   content: ''; position: absolute; inset: 5%; border-radius: 50%;
-  border: 5px solid rgba(200,30,30,.8); pointer-events: none;
+  border: 5px solid rgba(220, 50, 50, 0.8); pointer-events: none;
 }
 .piece {
-  font-size: calc(min(95vw,95vh,600px) / 8 * 0.82); line-height: 1;
-  pointer-events: none;
+  font-size: calc(min(95vw,95vh,600px) / 8 * 0.85); line-height: 1;
+  pointer-events: none; transition: transform 0.1s;
 }
-.piece.w { color: #ffffff; -webkit-text-stroke: 1.2px #1a1a1a; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
-.piece.b { color: #1a1a1a; -webkit-text-stroke: 1px rgba(255,255,255,.35); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
-#status { margin-top: 10px; padding: 6px 16px; font-size: 14px; color: #aaa; text-align: center; min-height: 20px; }
-#status.end { color: #ffd84a; font-size: 17px; font-weight: 700; }
+.piece.w { color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.6), 0 0 1px #000; }
+.piece.b { color: #1a1a1a; text-shadow: 0 2px 4px rgba(255,255,255,0.2), 0 0 1px #fff; }
+#status { margin-top: 15px; padding: 8px 16px; font-size: 16px; font-weight: 600; color: #aaa; text-align: center; }
+#status.end { color: #ffd84a; font-size: 20px; }
 </style>
 </head>
 <body>
-<div id="topbar"><span id="oppName">الخصم</span><span id="oppTimer">10:00</span></div>
+
+<div class="player-bar" id="topbar">
+  <div class="player-info">
+    <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
+    <span id="oppName" class="player-name">الخصم</span>
+  </div>
+  <div id="oppTimer" class="timer">10:00</div>
+</div>
+
 <div id="board"></div>
-<div id="bottombar"><span id="myTimer">10:00</span><span id="myName">أنا</span></div>
-<div id="status">جارٍ الاتصال...</div>
+
+<div class="player-bar" id="bottombar">
+  <div class="player-info">
+    <img id="myAvatar" class="avatar" src="https://ui-avatars.com/api/?name=M&background=333&color=fff">
+    <span id="myName" class="player-name">أنا</span>
+  </div>
+  <div id="myTimer" class="timer active">10:00</div>
+</div>
+
+<div id="status">جارٍ التحميل...</div>
+
 <script>
 (function(){
 'use strict';
 var tg = window.Telegram && window.Telegram.WebApp;
-if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#1e1e1e'); } catch(e){} }
+if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#121212'); tg.setBackgroundColor('#121212'); } catch(e){} }
 
 function parseParams(){
   var sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
   if (sp) {
     var p = sp.split('_');
-    if (p.length === 3) return { room: p[0], player: p[1].replace('p',''), color: p[2] };
+    if (p.length === 3) return { mode: 'pvp', room: p[0], player: p[1].replace('p',''), color: p[2] };
   }
   var q = new URLSearchParams(location.search);
-  return { room: q.get('room'), player: q.get('p') || '1', color: q.get('color') || 'w' };
+  return { 
+    mode: q.get('mode') || 'pvp',
+    room: q.get('room'), 
+    player: q.get('p') || '1', 
+    color: q.get('color') || 'w',
+    level: parseInt(q.get('level')) || 1
+  };
 }
+
 var P = parseParams();
-var room = P.room, player = P.player, myColor = P.color;
+var isAI = P.mode === 'ai';
+var myColor = isAI ? 'w' : P.color;
 var oppColor = myColor === 'w' ? 'b' : 'w';
-var myName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || (player === '1' ? 'لاعب 1' : 'لاعب 2');
-var oppName = 'بانتظار الخصم...';
 var game = new Chess();
 var selected = null, validTargets = [];
 var myTime = 600000, oppTime = 600000;
 var timerInterval = null, connected = false, gameOver = false;
-var peer = null, conn = null;
+var peer = null, conn = null, sfWorker = null;
 var files = ['a','b','c','d','e','f','g','h'];
 var SYM = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
 
 function el(id){ return document.getElementById(id); }
+
+function loadUserInfo(){
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    var u = tg.initDataUnsafe.user;
+    el('myName').textContent = u.first_name;
+    if (u.photo_url) el('myAvatar').src = u.photo_url;
+  }
+  if (isAI) {
+    el('oppName').textContent = P.level === 1 ? 'بوت (سهل)' : P.level === 2 ? 'بوت (متوسط)' : 'بوت (صعب)';
+    el('oppAvatar').src = 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png';
+  }
+}
+
 function formatTime(ms){ if(ms<0) ms=0; var s=Math.ceil(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function updateTimersUI(){
   el('myTimer').textContent = formatTime(myTime);
   el('oppTimer').textContent = formatTime(oppTime);
   el('myTimer').classList.toggle('low', myTime < 60000);
   el('oppTimer').classList.toggle('low', oppTime < 60000);
+  el('myTimer').classList.toggle('active', game.turn() === myColor && !gameOver);
+  el('oppTimer').classList.toggle('active', game.turn() !== myColor && !gameOver);
 }
 
 function renderBoard(){
@@ -108,7 +158,6 @@ function renderBoard(){
       var isLight = (fi0 + ri0) % 2 === 1;
       var sq = document.createElement('div');
       sq.className = 'square ' + (isLight ? 'light' : 'dark');
-      sq.dataset.square = square;
       var p = game.get(square);
       if (p) {
         var sp = document.createElement('span');
@@ -118,7 +167,7 @@ function renderBoard(){
       }
       if (selected === square) sq.classList.add('selected');
       if (validTargets.indexOf(square) >= 0) sq.classList.add(p ? 'capture' : 'valid');
-      (function(sc){ sq.addEventListener('click', function(){ onSquareClick(sc); }); })(square);
+      (function(sc){ sq.addEventListener('pointerdown', function(e){ e.preventDefault(); onSquareClick(sc); }); })(square);
       b.appendChild(sq);
     }
   }
@@ -130,7 +179,7 @@ function playSound(type){
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     var o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.connect(g); g.connect(audioCtx.destination);
-    var f = { move: 620, capture: 300, start: 880, end: 220 };
+    var f = { move: 600, capture: 300, start: 800, end: 200 };
     o.frequency.value = f[type] || 500;
     o.type = 'sine';
     g.gain.setValueAtTime(0.15, audioCtx.currentTime);
@@ -139,45 +188,58 @@ function playSound(type){
   } catch(e){}
 }
 
-function send(msg){ if (conn && connected) { try { conn.send(msg); } catch(e){} } }
+function makeMove(from, to, promotion){
+  var moving = game.get(from);
+  var isPromo = moving && moving.type === 'p' && (to[1] === '8' || to[1] === '1');
+  var mv = { from: from, to: to };
+  if (isPromo) mv.promotion = promotion || 'q';
+  var res = game.move(mv);
+  if (res) {
+    selected = null; validTargets = [];
+    renderBoard(); updateTimersUI();
+    playSound(res.captured ? 'capture' : 'move');
+    checkEnd();
+    return true;
+  }
+  return false;
+}
 
 function onSquareClick(square){
-  if (gameOver || !connected) return;
+  if (gameOver || (!connected && !isAI)) return;
   if (game.turn() !== myColor) return;
+  
   if (selected && validTargets.indexOf(square) >= 0) {
-    var from = selected;
-    var moving = game.get(from);
-    var isPromo = moving && moving.type === 'p' && (square[1] === '8' || square[1] === '1');
-    var mv = { from: from, to: square };
-    if (isPromo) mv.promotion = 'q';
-    var res = game.move(mv);
-    if (res) {
-      selected = null; validTargets = [];
-      send({ type:'move', from: mv.from, to: mv.to, promotion: mv.promotion, remaining: myTime });
-      renderBoard(); updateTimersUI();
-      playSound(res.captured ? 'capture' : 'move');
-      checkEnd();
-      return;
+    if (makeMove(selected, square)) {
+      if (!isAI) send({ type:'move', from: selected, to: square, remaining: myTime });
+      else if (!game.game_over()) setTimeout(triggerAIMove, 300);
     }
+    return;
   }
+  
   var piece = game.get(square);
   if (piece && piece.color === myColor) {
     selected = square;
     validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
-    renderBoard();
   } else {
     selected = null; validTargets = [];
-    renderBoard();
   }
+  renderBoard();
+}
+
+function triggerAIMove(){
+  if (gameOver || game.turn() === myColor) return;
+  el('status').textContent = 'البوت يفكر...';
+  var depth = P.level === 1 ? 1 : P.level === 2 ? 5 : 10;
+  sfWorker.postMessage('position fen ' + game.fen());
+  sfWorker.postMessage('go depth ' + depth);
 }
 
 function checkEnd(){
   if (!game.game_over()) return;
   var msg = '';
-  if (game.in_checkmate()) msg = game.turn() === myColor ? 'كش مات — خسرت' : 'كش مات — فزت!';
+  if (game.in_checkmate()) msg = game.turn() === myColor ? 'كش مات — خسرت' : 'كش مات — فزت! 🎉';
   else if (game.in_stalemate()) msg = 'تعادل (جمود)';
   else if (game.in_draw()) msg = 'تعادل';
-  else msg = 'انتهت اللعبة';
   endGame(msg);
 }
 
@@ -187,40 +249,57 @@ function endGame(reason){
   clearInterval(timerInterval);
   el('status').textContent = reason;
   el('status').className = 'end';
+  updateTimersUI();
   playSound('end');
 }
 
 function startTimers(){
   clearInterval(timerInterval);
+  el('status').textContent = 'اللعبة بدأت!';
+  el('status').className = '';
   timerInterval = setInterval(function(){
     if (gameOver) return;
     if (game.turn() === myColor) {
       myTime -= 100;
-      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك'); }
+      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك'); if(!isAI) send({ type:'timeout', loser: myColor }); }
     } else {
       oppTime -= 100;
-      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم'); send({ type:'timeout', loser: oppColor }); }
+      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم'); if(!isAI) send({ type:'timeout', loser: oppColor }); }
     }
     updateTimersUI();
   }, 100);
+  playSound('start');
+}
+
+function initAI(){
+  connected = true;
+  sfWorker = new Worker('https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js');
+  sfWorker.postMessage('uci');
+  sfWorker.postMessage('setoption name Skill Level value ' + (P.level === 1 ? 2 : P.level === 2 ? 10 : 20));
+  sfWorker.onmessage = function(e) {
+    if (e.data && e.data.indexOf('bestmove') === 0) {
+      var best = e.data.split(' ')[1];
+      if (best && best !== '(none)') {
+        var from = best.substring(0,2);
+        var to = best.substring(2,4);
+        var promo = best.length > 4 ? best[4] : 'q';
+        makeMove(from, to, promo);
+        el('status').textContent = 'دورك';
+      }
+    }
+  };
+  startTimers();
 }
 
 function handleMessage(msg){
   if (msg.type === 'hello') {
-    oppName = msg.name || 'الخصم';
-    el('oppName').textContent = oppName;
-    el('status').textContent = 'اللعبة بدأت!';
-    playSound('start');
+    el('oppName').textContent = msg.name || 'الخصم';
+    if (msg.photo) el('oppAvatar').src = msg.photo;
     startTimers();
   } else if (msg.type === 'move') {
-    var mv = { from: msg.from, to: msg.to };
-    if (msg.promotion) mv.promotion = msg.promotion;
-    var res = game.move(mv);
-    if (res) {
+    if (makeMove(msg.from, msg.to, msg.promotion)) {
       oppTime = msg.remaining;
-      renderBoard(); updateTimersUI();
-      playSound(res.captured ? 'capture' : 'move');
-      checkEnd();
+      updateTimersUI();
     }
   } else if (msg.type === 'timeout') {
     if (msg.loser === myColor) endGame('خسرت — نفد وقتك');
@@ -232,7 +311,8 @@ function setupConn(){
   conn.on('open', function(){
     connected = true;
     el('status').textContent = 'متصل! جارٍ بدء اللعبة...';
-    send({ type:'hello', name: myName });
+    var myPhoto = el('myAvatar').src;
+    send({ type:'hello', name: el('myName').textContent, photo: myPhoto });
   });
   conn.on('data', handleMessage);
   conn.on('close', function(){
@@ -243,28 +323,33 @@ function setupConn(){
 
 function initPeer(){
   var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } };
-  if (player === '1') {
-    peer = new Peer('chess-' + room + '-host', cfg);
+  if (P.player === '1') {
+    peer = new Peer('chess-' + P.room + '-host', cfg);
     peer.on('open', function(){ el('status').textContent = 'بانتظار انضمام الصديق...'; });
     peer.on('connection', function(c){ conn = c; setupConn(); });
     peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type; });
   } else {
     peer = new Peer(cfg);
     peer.on('open', function(){
-      conn = peer.connect('chess-' + room + '-host', { reliable: true });
+      conn = peer.connect('chess-' + P.room + '-host', { reliable: true });
       setupConn();
     });
-    peer.on('error', function(e){
-      el('status').textContent = 'خطأ: ' + e.type + ' — قد يكون الخصم لم يفتح اللعبة بعد';
-    });
+    peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type + ' — تأكد أن صديقك فتح اللعبة'; });
   }
 }
 
-el('myName').textContent = myName;
-el('oppName').textContent = oppName;
+function send(msg){ if (conn && connected) { try { conn.send(msg); } catch(e){} } }
+
+loadUserInfo();
 renderBoard(); updateTimersUI();
-if (room) initPeer();
-else el('status').textContent = 'رابط غير صالح';
+
+if (isAI) {
+  initAI();
+} else if (P.room) {
+  initPeer();
+} else {
+  el('status').textContent = 'رابط غير صالح';
+}
 })();
 </script>
 </body>
