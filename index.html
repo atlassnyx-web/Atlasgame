@@ -80,6 +80,12 @@ body {
 </style>
 </head>
 <body>
+
+<!-- الأصوات الأصلية للشطرنج (Lichess Sounds) -->
+<audio id="sfx-move" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/Move.mp3" preload="auto"></audio>
+<audio id="sfx-capture" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/Capture.mp3" preload="auto"></audio>
+<audio id="sfx-start" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/GenericNotify.mp3" preload="auto"></audio>
+
 <div id="topbar">
   <div class="player-info">
     <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
@@ -243,67 +249,15 @@ document.addEventListener('pointerup', function(e){
   } else { selected = null; validTargets = []; renderBoard(); }
 });
 
-// --- الأصوات الخشبية المريحة ---
-var audioCtx = null;
-var noiseBuffer = null;
-
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var bufferSize = audioCtx.sampleRate * 0.05;
-    noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    var data = noiseBuffer.getChannelData(0);
-    for (var i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
-  }
-}
-
+// --- الأصوات الجديدة ---
 function playSound(type){
   try {
-    initAudio();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    var osc = audioCtx.createOscillator();
-    var gain = audioCtx.createGain();
-    var noise = audioCtx.createBufferSource();
-    var noiseGain = audioCtx.createGain();
-    
-    noise.buffer = noiseBuffer;
-    osc.connect(gain);
-    noise.connect(noiseGain);
-    
-    if (type === 'move') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-      
-      noiseGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-    } else if (type === 'capture') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-      
-      noiseGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    } else {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    var audioId = type === 'move' ? 'sfx-move' : type === 'capture' ? 'sfx-capture' : 'sfx-start';
+    var audio = el(audioId);
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(function(e){});
     }
-    
-    osc.start();
-    noise.start();
-    osc.stop(audioCtx.currentTime + 0.2);
-    noise.stop(audioCtx.currentTime + 0.2);
-    
-    gain.connect(audioCtx.destination);
-    noiseGain.connect(audioCtx.destination);
   } catch(e){}
 }
 
@@ -520,12 +474,10 @@ el('oppName').textContent = oppName;
 el('oppAvatar').src = oppPhoto;
 renderBoard(); updateTimersUI();
 
-// تشغيل الوضع المناسب
 if (isAI) { 
   connected = true; 
   startTimers(); 
 } else if (P.room) { 
-  // تأخير بسيط عشان تضمن اللوحة ترسم قبل ما يبدأ الاتصال
   setTimeout(initPeer, 500); 
 } else { 
   el('status').textContent = 'رابط غير صالح'; 
