@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>شطرنج أطلس</title>
-<!-- صياد الأخطاء: يظهر أي مشكلة على الشاشة بدل ما تتجمد اللعبة -->
 <script>
 window.onerror = function(msg, url, line) {
   var st = document.getElementById('status');
@@ -341,7 +340,7 @@ function startTimers(){
   playSound('start');
 }
 
-// --- الذكاء الاصطناعي ---
+// --- الذكاء الاصطناعي (تم إصلاح كلمة eval) ---
 var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 function evaluateBoard(game) {
   var totalEval = 0; var board = game.board();
@@ -359,11 +358,21 @@ function minimax(game, depth, isMaximizing) {
   var moves = game.moves();
   if (isMaximizing) {
     var maxEval = -Infinity;
-    for (var i = 0; i < moves.length; i++) { game.move(moves[i]); var eval = minimax(game, depth - 1, false); game.undo(); maxEval = Math.max(maxEval, eval); }
+    for (var i = 0; i < moves.length; i++) { 
+      game.move(moves[i]); 
+      var score = minimax(game, depth - 1, false); 
+      game.undo(); 
+      maxEval = Math.max(maxEval, score); 
+    }
     return maxEval;
   } else {
     var minEval = Infinity;
-    for (var i = 0; i < moves.length; i++) { game.move(moves[i]); var eval = minimax(game, depth - 1, true); game.undo(); minEval = Math.min(minEval, eval); }
+    for (var i = 0; i < moves.length; i++) { 
+      game.move(moves[i]); 
+      var score = minimax(game, depth - 1, true); 
+      game.undo(); 
+      minEval = Math.min(minEval, score); 
+    }
     return minEval;
   }
 }
@@ -384,9 +393,11 @@ function triggerAIMove(){
       var bestEval = isMaximizing ? -Infinity : Infinity;
       moves.sort(function() { return 0.5 - Math.random(); });
       for (var i = 0; i < moves.length; i++) {
-        game.move(moves[i]); var eval = minimax(game, depth - 1, !isMaximizing); game.undo();
-        if (isMaximizing) { if (eval > bestEval) { bestEval = eval; bestMove = moves[i]; } }
-        else { if (eval < bestEval) { bestEval = eval; bestMove = moves[i]; } }
+        game.move(moves[i]); 
+        var score = minimax(game, depth - 1, !isMaximizing); 
+        game.undo();
+        if (isMaximizing) { if (score > bestEval) { bestEval = score; bestMove = moves[i]; } }
+        else { if (score < bestEval) { bestEval = score; bestMove = moves[i]; } }
       }
     }
     if (bestMove) { makeMove(bestMove.from, bestMove.to, bestMove.promotion); el('status').textContent = 'دورك'; }
