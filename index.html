@@ -81,10 +81,10 @@ body {
 </head>
 <body>
 
-<!-- الأصوات الأصلية للشطرنج (Lichess Sounds) -->
-<audio id="sfx-move" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/Move.mp3" preload="auto"></audio>
-<audio id="sfx-capture" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/Capture.mp3" preload="auto"></audio>
-<audio id="sfx-start" src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/sound/standard/GenericNotify.mp3" preload="auto"></audio>
+<!-- الأصوات الخشبية المريحة من Chess.com -->
+<audio id="sfx-move" src="https://images.chesscomfiles.com/chess-themes/sounds/_mp3_/default/move-self.mp3" preload="auto"></audio>
+<audio id="sfx-capture" src="https://images.chesscomfiles.com/chess-themes/sounds/_mp3_/default/capture.mp3" preload="auto"></audio>
+<audio id="sfx-start" src="https://images.chesscomfiles.com/chess-themes/sounds/_mp3_/default/game-start.mp3" preload="auto"></audio>
 
 <div id="topbar">
   <div class="player-info">
@@ -249,13 +249,14 @@ document.addEventListener('pointerup', function(e){
   } else { selected = null; validTargets = []; renderBoard(); }
 });
 
-// --- الأصوات الجديدة ---
+// --- تشغيل الأصوات ---
 function playSound(type){
   try {
     var audioId = type === 'move' ? 'sfx-move' : type === 'capture' ? 'sfx-capture' : 'sfx-start';
     var audio = el(audioId);
     if (audio) {
       audio.currentTime = 0;
+      audio.volume = 0.6; // خفض الصوت ليكون مريح للأذن
       audio.play().catch(function(e){});
     }
   } catch(e){}
