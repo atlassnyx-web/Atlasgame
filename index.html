@@ -41,13 +41,14 @@ body {
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 #board-container {
   position: relative;
-  width: min(95vw, 95vh, 600px); aspect-ratio: 1;
+  width: min(95vw, 95vh, 600px); 
+  height: min(95vw, 95vh, 600px);
 }
 #board {
   display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
   width: 100%; height: 100%;
   border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  touch-action: none; /* لمنع سحب الشاشة أثناء اللعب */
+  touch-action: none;
 }
 .square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: none; }
 .light { background: #eeddcc; }
@@ -69,7 +70,6 @@ body {
 .piece.b { color: #1a1a1a; text-shadow: 0 2px 4px rgba(255,255,255,0.2), 0 0 2px #fff; }
 #status { margin-top: 10px; padding: 6px 16px; font-size: 16px; font-weight: 600; color: #aaa; text-align: center; }
 #status.end { color: #ffd84a; font-size: 20px; }
-/* عنصر السحب */
 .drag-ghost {
   position: fixed; pointer-events: none; z-index: 1000;
   font-size: calc(min(95vw,95vh,600px) / 8 * 0.85);
@@ -149,7 +149,7 @@ function loadUserInfo(){
   }
 }
 
-function formatTime(ms){ if(ms<0) ms=0; var s=Math.ceil(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function formatTime(ms){ if(ms<0) ms=0; var s = Math.ceil(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
 
 function updateTimersUI(){
   el('myTimer').textContent = formatTime(myTime);
@@ -163,7 +163,8 @@ function updateTimersUI(){
 }
 
 function renderBoard(){
-  var b = el('board'); b.innerHTML = '';
+  var b = el('board'); 
+  b.innerHTML = '';
   var fi = [0,1,2,3,4,5,6,7], ri = [7,6,5,4,3,2,1,0];
   if (myColor === 'b') { fi.reverse(); ri = [0,1,2,3,4,5,6,7]; }
   for (var r = 0; r < 8; r++) {
@@ -183,33 +184,28 @@ function renderBoard(){
       }
       if (selected === square) sq.classList.add('selected');
       if (validTargets.indexOf(square) >= 0) sq.classList.add(p ? 'capture' : 'valid');
-      
       b.appendChild(sq);
     }
   }
 }
 
-// --- نظام السحب والإفلات ---
 var isDragging = false, dragSquare = null, ghostEl = null;
 var boardEl = el('board');
 
 boardEl.addEventListener('pointerdown', function(e){
-  if (gameOver || (!connected && !isAI)) return;
-  if (game.turn() !== myColor) return;
-
+  if (gameOver || (!connected && !isAI) || game.turn() !== myColor) return;
   var sqEl = e.target.closest('.square');
   if (!sqEl) return;
+  
   var square = sqEl.dataset.square;
   var piece = game.get(square);
 
   if (piece && piece.color === myColor) {
-    // بدء السحب
     isDragging = true;
     dragSquare = square;
     selected = square;
     validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
     
-    // إنشاء القطعة المعلقة
     ghostEl = document.createElement('span');
     ghostEl.className = 'piece ' + piece.color + ' drag-ghost';
     ghostEl.textContent = SYM[piece.type];
@@ -219,7 +215,6 @@ boardEl.addEventListener('pointerdown', function(e){
     
     renderBoard();
   } else {
-    // إلغاء التحديد إذا ضغط على مكان فاضي
     selected = null; validTargets = [];
     renderBoard();
   }
@@ -236,7 +231,6 @@ document.addEventListener('pointerup', function(e){
   isDragging = false;
   if (ghostEl) { ghostEl.remove(); ghostEl = null; }
 
-  // إخفاء المؤشر لمعرفة المربع تحته
   var elementUnder = document.elementFromPoint(e.clientX, e.clientY);
   if (elementUnder) {
     var targetSqEl = elementUnder.closest('.square');
@@ -248,7 +242,6 @@ document.addEventListener('pointerup', function(e){
       }
     }
   }
-  // إذا لم يضعها في مكان صحيح، نلغي التحديد
   selected = null; validTargets = [];
   renderBoard();
 });
@@ -279,7 +272,7 @@ function makeMove(from, to, promotion){
     selected = null; validTargets = [];
     renderBoard(); 
     updateTimersUI();
-    lastTick = Date.now(); // تصفير مؤقت الوقت لضمان الدقة
+    lastTick = Date.now(); 
     playSound(res.captured ? 'capture' : 'move');
     checkEnd();
     return true;
@@ -333,7 +326,7 @@ function startTimers(){
   playSound('start');
 }
 
-// --- الذكاء الاصطناعي (Minimax) ---
+// AI Minimax Logic
 var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 function evaluateBoard(game) {
   var totalEval = 0;
@@ -384,15 +377,14 @@ function triggerAIMove(){
     
     var bestMove = null;
     
-    if (P.level === 1) { // سهل: حركة عشوائية لكن يفضل الأكل
+    if (P.level === 1) {
       var captures = moves.filter(function(m){ return m.captured; });
       bestMove = (captures.length > 0 && Math.random() > 0.5) ? captures[Math.floor(Math.random()*captures.length)] : moves[Math.floor(Math.random()*moves.length)];
-    } else { // متوسط وصعب: Minimax
-      var depth = P.level === 2 ? 2 : 3; // العمق 2 متوسط، 3 صعب
+    } else {
+      var depth = P.level === 2 ? 2 : 3;
       var isMaximizing = game.turn() === 'w';
       var bestEval = isMaximizing ? -Infinity : Infinity;
       
-      // خلط الحركات لتنويع اللعب
       moves.sort(function() { return 0.5 - Math.random(); });
       
       for (var i = 0; i < moves.length; i++) {
@@ -412,7 +404,7 @@ function triggerAIMove(){
       makeMove(bestMove.from, bestMove.to, bestMove.promotion);
       el('status').textContent = 'دورك';
     }
-  }, 300); // تأخير بسيط ليبدو طبيعياً
+  }, 200);
 }
 
 function initAI(){
@@ -467,7 +459,7 @@ function initPeer(){
   }
 }
 
-// تعديل دالة الحركة للتعامل مع الذكاء الاصطناعي
+// Override makeMove to handle AI and Sending
 var originalMakeMove = makeMove;
 makeMove = function(from, to, promotion) {
   var success = originalMakeMove(from, to, promotion);
@@ -480,7 +472,8 @@ makeMove = function(from, to, promotion) {
 };
 
 loadUserInfo();
-renderBoard(); updateTimersUI();
+renderBoard(); 
+updateTimersUI();
 
 if (isAI) {
   initAI();
