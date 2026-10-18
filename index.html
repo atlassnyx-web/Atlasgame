@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent !important; user-select: none; }
-body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #121212; color: #eee; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #121212; color: #eee; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
 #game-wrapper { display: flex; flex-direction: column; width: 100%; height: 100%; max-width: 600px; padding: 10px; position: relative; }
 .player-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 4px; }
 .player-info { display: flex; align-items: center; gap: 8px; }
@@ -20,7 +20,7 @@ body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background
 .timer.low { background: #8b1e1e; color: #fff; animation: pulse 1s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-#board-container { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 70vh; margin: auto 0; display: flex; justify-content: center; align-items: center; }
+#board-container { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 75vh; margin: auto 0; display: flex; justify-content: center; align-items: center; }
 #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.6); touch-action: none; background: #b58863; }
 .square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: none; }
 .light { background: #eeddcc; }
@@ -28,11 +28,11 @@ body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background
 .square.selected { box-shadow: inset 0 0 0 4px rgba(255, 215, 0, 0.8); }
 .square.valid::after { content: ''; position: absolute; width: 30%; height: 30%; border-radius: 50%; background: rgba(0, 0, 0, 0.25); pointer-events: none; }
 .square.capture::after { content: ''; position: absolute; inset: 5%; border-radius: 50%; border: 4px solid rgba(220, 50, 50, 0.8); pointer-events: none; }
-.piece { font-size: calc(min(95vw, 70vh) / 8 * 0.85); line-height: 1; pointer-events: none; z-index: 10; }
+.piece { font-size: calc(min(95vw, 75vh) / 8 * 0.85); line-height: 1; pointer-events: none; z-index: 10; }
 .piece.w { color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 2px #000; }
 .piece.b { color: #1a1a1a; text-shadow: 0 2px 4px rgba(255,255,255,0.2), 0 0 2px #fff; }
-#status { margin-top: 5px; padding: 6px; font-size: 16px; font-weight: 600; color: #aaa; text-align: center; }
-.drag-ghost { position: fixed; pointer-events: none; z-index: 1000; font-size: calc(min(95vw, 70vh) / 8 * 0.85); transform: translate(-50%, -50%); }
+#status { margin-top: 10px; padding: 6px 16px; font-size: 16px; font-weight: 600; color: #aaa; text-align: center; }
+.drag-ghost { position: fixed; pointer-events: none; z-index: 1000; font-size: calc(min(95vw, 75vh) / 8 * 0.85); transform: translate(-50%, -50%); }
 
 /* شاشة النهاية */
 #end-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(18,18,18,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; }
@@ -42,7 +42,7 @@ body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background
 .end-title.lose { color: #f44336; }
 .end-players { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
 .end-player { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.end-player img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid #555; }
+.end-player img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid #555; object-fit: cover; }
 .end-player.winner img { border-color: #ffd700; box-shadow: 0 0 15px #ffd700; }
 .end-player .name { font-size: 18px; font-weight: bold; }
 .end-player .result { font-size: 14px; color: #aaa; }
@@ -94,7 +94,6 @@ body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background
 <script>
 (function(){
 'use strict';
-
 try {
   if (typeof Chess === 'undefined') {
     document.getElementById('status').textContent = "فشل تحميل محرك الشطرنج. يرجى إغلاق التطبيق وفتحه مرة أخرى.";
@@ -133,7 +132,7 @@ try {
   function loadUserInfo(){
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       var u = tg.initDataUnsafe.user;
-      el('myName').textContent = u.first_name;
+      el('myName').textContent = u.first_name || 'أنا';
       if (u.photo_url) { el('myAvatar').src = u.photo_url; myAvatarUrl = u.photo_url; }
     }
     if (isAI) {
@@ -262,11 +261,10 @@ try {
       winner = game.turn() === 'w' ? 'b' : 'w';
       msg = game.turn() === myColor ? 'كش مات — خسرت' : 'كش مات — فزت! 🎉';
     } else if (game.in_stalemate() || game.in_draw()) { msg = 'تعادل'; }
-    
-    endGame(msg, winner, game.in_checkmate() ? 'كش مات' : 'تعادل');
+    endGame(msg, winner);
   }
 
-  function endGame(reason, winnerColor, detail){
+  function endGame(reason, winnerColor){
     if (gameOver) return;
     gameOver = true; clearInterval(timerInterval);
     el('status').textContent = reason; playSound('end');
@@ -303,10 +301,10 @@ try {
       var now = Date.now(); var delta = now - lastTick; lastTick = now;
       if (game.turn() === myColor) {
         myTime -= delta;
-        if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w', 'الوقت'); if(!isAI) send({ type:'timeout', loser: myColor }); }
+        if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); if(!isAI) send({ type:'timeout', loser: myColor }); }
       } else {
         oppTime -= delta;
-        if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor, 'الوقت'); if(!isAI) send({ type:'timeout', loser: myColor === 'w' ? 'b' : 'w' }); }
+        if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); if(!isAI) send({ type:'timeout', loser: myColor === 'w' ? 'b' : 'w' }); }
       }
       updateTimersUI();
     }, 100);
@@ -374,8 +372,8 @@ try {
     } else if (msg.type === 'move') {
       if (makeMove(msg.from, msg.to, msg.promotion)) { oppTime = msg.remaining; updateTimersUI(); }
     } else if (msg.type === 'timeout') {
-      if (msg.loser === myColor) endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w', 'الوقت');
-      else endGame('فزت! نفد وقت الخصم', myColor, 'الوقت');
+      if (msg.loser === myColor) endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w');
+      else endGame('فزت! نفد وقت الخصم', myColor);
     }
   }
 
@@ -411,7 +409,6 @@ try {
 } catch (err) {
   document.getElementById('status').textContent = "خطأ: " + err.message;
   document.getElementById('status').style.color = "red";
-  console.error(err);
 }
 })();
 </script>
