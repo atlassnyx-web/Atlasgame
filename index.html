@@ -4,13 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>شطرنج أطلس</title>
-<script>
-window.onerror = function(msg, url, line) {
-  var st = document.getElementById('status');
-  if(st) { st.textContent = "خطأ: " + msg; st.style.color = "red"; }
-  return false;
-};
-</script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -123,7 +116,7 @@ body {
   <span id="myTimer">10:00</span>
 </div>
 
-<div id="status">جارٍ الاتصال...</div>
+<div id="status">جارٍ التحميل...</div>
 
 <script>
 (function(){
@@ -250,18 +243,67 @@ document.addEventListener('pointerup', function(e){
   } else { selected = null; validTargets = []; renderBoard(); }
 });
 
+// --- الأصوات الخشبية المريحة ---
 var audioCtx = null;
+var noiseBuffer = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var bufferSize = audioCtx.sampleRate * 0.05;
+    noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    var data = noiseBuffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+  }
+}
+
 function playSound(type){
   try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.connect(g); g.connect(audioCtx.destination);
-    var f = { move: 620, capture: 300, start: 880, end: 220 };
-    o.frequency.value = f[type] || 500;
-    o.type = 'sine';
-    g.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-    o.start(); o.stop(audioCtx.currentTime + 0.2);
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    var noise = audioCtx.createBufferSource();
+    var noiseGain = audioCtx.createGain();
+    
+    noise.buffer = noiseBuffer;
+    osc.connect(gain);
+    noise.connect(noiseGain);
+    
+    if (type === 'move') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      
+      noiseGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+    } else if (type === 'capture') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      
+      noiseGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    } else {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    }
+    
+    osc.start();
+    noise.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+    noise.stop(audioCtx.currentTime + 0.2);
+    
+    gain.connect(audioCtx.destination);
+    noiseGain.connect(audioCtx.destination);
   } catch(e){}
 }
 
@@ -297,7 +339,7 @@ function checkEnd(){
 function endGame(reason, winnerColor){
   if (gameOver) return;
   gameOver = true; clearInterval(timerInterval);
-  el('status').textContent = reason; playSound('end');
+  el('status').textContent = reason; playSound('start');
   
   var screen = el('end-screen'); screen.classList.add('show');
   var title = el('end-title');
@@ -340,7 +382,7 @@ function startTimers(){
   playSound('start');
 }
 
-// --- الذكاء الاصطناعي (تم إصلاح كلمة eval) ---
+// --- الذكاء الاصطناعي ---
 var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 function evaluateBoard(game) {
   var totalEval = 0; var board = game.board();
@@ -437,19 +479,38 @@ function setupConn(){
   });
   conn.on('data', handleMessage);
   conn.on('close', function(){ connected = false; if (!gameOver) el('status').textContent = 'انقطع الاتصال بالخصم'; });
+  conn.on('error', function(err) { el('status').textContent = 'خطأ بالاتصال: ' + err; el('status').style.color = 'red'; });
 }
 
 function initPeer(){
-  var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } };
+  if (typeof Peer === 'undefined') {
+    el('status').textContent = 'فشل تحميل مكتبة الاتصال، جرب إعادة فتح اللعبة';
+    el('status').style.color = 'red';
+    return;
+  }
+
+  var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] } };
+  
   if (P.player === '1') {
+    el('status').textContent = 'جارٍ إنشاء الغرفة...';
     peer = new Peer('chess-' + P.room + '-host', cfg);
     peer.on('open', function(){ el('status').textContent = 'بانتظار انضمام الصديق...'; });
     peer.on('connection', function(c){ conn = c; setupConn(); });
-    peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type; });
+    peer.on('error', function(e){ 
+      el('status').textContent = 'خطأ بالغرفة: ' + e.type; 
+      el('status').style.color = 'red';
+    });
   } else {
+    el('status').textContent = 'جارٍ الاتصال بالغرفة...';
     peer = new Peer(cfg);
-    peer.on('open', function(){ conn = peer.connect('chess-' + P.room + '-host', { reliable: true }); setupConn(); });
-    peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type + ' — تأكد أن صديقك فتح اللعبة'; });
+    peer.on('open', function(){ 
+      conn = peer.connect('chess-' + P.room + '-host', { reliable: true }); 
+      setupConn(); 
+    });
+    peer.on('error', function(e){ 
+      el('status').textContent = 'خطأ بالاتصال: ' + e.type + ' — تأكد أن صاحب الغرفة فتح اللعبة'; 
+      el('status').style.color = 'red';
+    });
   }
 }
 
@@ -459,9 +520,17 @@ el('oppName').textContent = oppName;
 el('oppAvatar').src = oppPhoto;
 renderBoard(); updateTimersUI();
 
-if (isAI) { connected = true; startTimers(); }
-else if (P.room) { initPeer(); }
-else { el('status').textContent = 'رابط غير صالح'; }
+// تشغيل الوضع المناسب
+if (isAI) { 
+  connected = true; 
+  startTimers(); 
+} else if (P.room) { 
+  // تأخير بسيط عشان تضمن اللوحة ترسم قبل ما يبدأ الاتصال
+  setTimeout(initPeer, 500); 
+} else { 
+  el('status').textContent = 'رابط غير صالح'; 
+  el('status').style.color = 'red';
+}
 })();
 </script>
 </body>
