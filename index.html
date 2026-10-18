@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>chess67</title>
+<title>شطرنج أطلس</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 * { 
@@ -14,16 +14,21 @@
   user-select: none;
 }
 body {
-  margin: 0; padding: 8px;
+  margin: 0; padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #121212; color: #eee;
   display: flex; flex-direction: column; align-items: center;
-  min-height: 100vh; overflow: hidden;
+  height: 100vh; width: 100vw; overflow: hidden;
+}
+#game-wrapper {
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%; max-width: 600px;
+  padding: 10px; 
 }
 .player-bar {
-  width: min(95vw, 95vh, 600px);
+  width: 100%;
   display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 4px; margin: 2px 0;
+  padding: 4px;
 }
 .player-info { display: flex; align-items: center; gap: 8px; }
 .avatar {
@@ -39,10 +44,14 @@ body {
 .timer.active { background: #2b6e2b; color: #fff; }
 .timer.low { background: #8b1e1e; color: #fff; animation: pulse 1s infinite; }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
 #board-container {
   position: relative;
-  width: min(95vw, 95vh, 600px); 
-  height: min(95vw, 95vh, 600px);
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 70vh;
+  margin: auto 0;
+  display: flex; justify-content: center; align-items: center;
 }
 #board {
   display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
@@ -63,7 +72,7 @@ body {
   border: 4px solid rgba(220, 50, 50, 0.8); pointer-events: none;
 }
 .piece {
-  font-size: calc(min(95vw,95vh,600px) / 8 * 0.85); line-height: 1;
+  font-size: calc(min(95vw, 70vh) / 8 * 0.85); line-height: 1;
   pointer-events: none; z-index: 10;
 }
 .piece.w { color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 2px #000; }
@@ -72,36 +81,44 @@ body {
 #status.end { color: #ffd84a; font-size: 20px; }
 .drag-ghost {
   position: fixed; pointer-events: none; z-index: 1000;
-  font-size: calc(min(95vw,95vh,600px) / 8 * 0.85);
+  font-size: calc(min(95vw, 70vh) / 8 * 0.85);
   transform: translate(-50%, -50%);
 }
 </style>
 </head>
 <body>
 
-<div class="player-bar" id="topbar">
-  <div class="player-info">
-    <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
-    <span id="oppName" class="player-name">الخصم</span>
+<div id="game-wrapper">
+  <div class="player-bar" id="topbar">
+    <div class="player-info">
+      <img id="oppAvatar" class="avatar" src="https://ui-avatars.com/api/?name=O&background=333&color=fff">
+      <span id="oppName" class="player-name">الخصم</span>
+    </div>
+    <div id="oppTimer" class="timer">10:00</div>
   </div>
-  <div id="oppTimer" class="timer">10:00</div>
-</div>
 
-<div id="board-container">
-  <div id="board"></div>
-</div>
-
-<div class="player-bar" id="bottombar">
-  <div class="player-info">
-    <img id="myAvatar" class="avatar" src="https://ui-avatars.com/api/?name=M&background=333&color=fff">
-    <span id="myName" class="player-name">أنا</span>
+  <div id="board-container">
+    <div id="board"></div>
   </div>
-  <div id="myTimer" class="timer active">10:00</div>
-</div>
 
-<div id="status">جارٍ التحميل...</div>
+  <div class="player-bar" id="bottombar">
+    <div class="player-info">
+      <img id="myAvatar" class="avatar" src="https://ui-avatars.com/api/?name=M&background=333&color=fff">
+      <span id="myName" class="player-name">أنا</span>
+    </div>
+    <div id="myTimer" class="timer active">10:00</div>
+  </div>
+  
+  <div id="status">جارٍ التحميل...</div>
+</div>
 
 <script>
+window.onerror = function(msg, url, line) {
+  document.getElementById('status').textContent = "خطأ: " + msg;
+  document.getElementById('status').className = 'end';
+  return false;
+};
+
 (function(){
 'use strict';
 var tg = window.Telegram && window.Telegram.WebApp;
@@ -231,19 +248,22 @@ document.addEventListener('pointerup', function(e){
   isDragging = false;
   if (ghostEl) { ghostEl.remove(); ghostEl = null; }
 
-  var elementUnder = document.elementFromPoint(e.clientX, e.clientY);
-  if (elementUnder) {
-    var targetSqEl = elementUnder.closest('.square');
-    if (targetSqEl) {
-      var targetSquare = targetSqEl.dataset.square;
-      if (validTargets.indexOf(targetSquare) >= 0) {
-        makeMove(dragSquare, targetSquare);
-        return;
-      }
+  var targetSquare = null;
+  var squares = document.querySelectorAll('.square');
+  for (var i = 0; i < squares.length; i++) {
+    var rect = squares[i].getBoundingClientRect();
+    if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      targetSquare = squares[i].dataset.square;
+      break;
     }
   }
-  selected = null; validTargets = [];
-  renderBoard();
+
+  if (targetSquare && validTargets.indexOf(targetSquare) >= 0) {
+    makeMove(dragSquare, targetSquare);
+  } else {
+    selected = null; validTargets = [];
+    renderBoard();
+  }
 });
 
 var audioCtx = null;
@@ -268,6 +288,7 @@ function makeMove(from, to, promotion){
   var mv = { from: from, to: to };
   if (isPromo) mv.promotion = promotion || 'q';
   var res = game.move(mv);
+  
   if (res) {
     selected = null; validTargets = [];
     renderBoard(); 
@@ -275,6 +296,12 @@ function makeMove(from, to, promotion){
     lastTick = Date.now(); 
     playSound(res.captured ? 'capture' : 'move');
     checkEnd();
+    
+    if (isAI && !gameOver && game.turn() !== myColor) {
+      triggerAIMove();
+    } else if (!isAI) {
+      send({ type:'move', from: from, to: to, promotion: promotion, remaining: myTime });
+    }
     return true;
   }
   return false;
@@ -326,7 +353,6 @@ function startTimers(){
   playSound('start');
 }
 
-// AI Minimax Logic
 var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 function evaluateBoard(game) {
   var totalEval = 0;
@@ -458,18 +484,6 @@ function initPeer(){
     peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type + ' — تأكد أن صديقك فتح اللعبة'; });
   }
 }
-
-// Override makeMove to handle AI and Sending
-var originalMakeMove = makeMove;
-makeMove = function(from, to, promotion) {
-  var success = originalMakeMove(from, to, promotion);
-  if (success && isAI && !gameOver && game.turn() !== myColor) {
-    triggerAIMove();
-  } else if (success && !isAI) {
-    send({ type:'move', from: from, to: to, promotion: promotion, remaining: myTime });
-  }
-  return success;
-};
 
 loadUserInfo();
 renderBoard(); 
