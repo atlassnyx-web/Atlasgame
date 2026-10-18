@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>شطرنج</title>
+<title>شطرنج أطلس</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent !important; user-select: none; }
 body {
   margin: 0; padding: 8px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -27,7 +27,7 @@ body {
 .avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: #333; border: 2px solid #555; }
 #oppTimer, #myTimer {
   background: #333; padding: 4px 12px; border-radius: 6px;
-  font-family: monospace; font-size: 18px; letter-spacing: 1px; min-width: 72px; text-align: center;
+  font-family: monospace; font-size: 18px; letter-spacing: 1px; min-width: 72px; text-align: center; transition: 0.3s;
 }
 #oppTimer.low, #myTimer.low { background: #8b1e1e; color: #fff; }
 #board-container { position: relative; width: min(95vw, 95vh, 600px); aspect-ratio: 1; }
@@ -35,8 +35,9 @@ body {
   display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
   width: 100%; height: 100%;
   border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+  touch-action: none;
 }
-.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: none; }
 .light { background: #f0d9b5; }
 .dark { background: #b58863; }
 .square.selected { box-shadow: inset 0 0 0 4px #f7d84a; }
@@ -55,6 +56,13 @@ body {
 .piece.w { color: #ffffff; -webkit-text-stroke: 1.2px #1a1a1a; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
 .piece.b { color: #1a1a1a; -webkit-text-stroke: 1px rgba(255,255,255,.35); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
 #status { margin-top: 10px; padding: 6px 16px; font-size: 14px; color: #aaa; text-align: center; min-height: 20px; }
+.drag-ghost {
+  position: fixed; pointer-events: none; z-index: 1000;
+  font-size: calc(min(95vw,95vh,600px) / 8 * 0.82);
+  transform: translate(-50%, -50%);
+}
+.drag-ghost.w { color: #ffffff; -webkit-text-stroke: 1.2px #1a1a1a; }
+.drag-ghost.b { color: #1a1a1a; -webkit-text-stroke: 1px rgba(255,255,255,.35); }
 
 /* شاشة النهاية */
 #end-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30,30,30,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 4px; }
@@ -120,18 +128,25 @@ function parseParams(){
   var sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
   if (sp) {
     var p = sp.split('_');
-    if (p.length === 3) return { room: p[0], player: p[1].replace('p',''), color: p[2] };
+    if (p.length === 3) return { mode: 'pvp', room: p[0], player: p[1].replace('p',''), color: p[2] };
   }
   var q = new URLSearchParams(location.search);
-  return { room: q.get('room'), player: q.get('p') || '1', color: q.get('color') || 'w' };
+  return { 
+    mode: q.get('mode') || 'pvp', 
+    room: q.get('room'), 
+    player: q.get('p') || '1', 
+    color: q.get('color') || 'w',
+    level: parseInt(q.get('level')) || 1
+  };
 }
 var P = parseParams();
-var room = P.room, player = P.player, myColor = P.color;
+var isAI = P.mode === 'ai';
+var myColor = isAI ? 'w' : P.color;
 var oppColor = myColor === 'w' ? 'b' : 'w';
 var myName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || 'لاعب';
 var myPhoto = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.photo_url) || 'https://ui-avatars.com/api/?name=' + myName.charAt(0) + '&background=333&color=fff';
-var oppName = 'بانتظار الخصم...';
-var oppPhoto = 'https://ui-avatars.com/api/?name=O&background=333&color=fff';
+var oppName = isAI ? (P.level === 1 ? 'بوت (سهل)' : P.level === 2 ? 'بوت (متوسط)' : 'بوت (صعب)') : 'بانتظار الخصم...';
+var oppPhoto = isAI ? 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png' : 'https://ui-avatars.com/api/?name=O&background=333&color=fff';
 
 var game = new Chess();
 var selected = null, validTargets = [];
@@ -171,11 +186,56 @@ function renderBoard(){
       }
       if (selected === square) sq.classList.add('selected');
       if (validTargets.indexOf(square) >= 0) sq.classList.add(p ? 'capture' : 'valid');
-      (function(sc){ sq.addEventListener('click', function(){ onSquareClick(sc); }); })(square);
       b.appendChild(sq);
     }
   }
 }
+
+// --- السحب والإفلات (Drag & Drop) ---
+var isDragging = false, dragSquare = null, ghostEl = null;
+var boardEl = el('board');
+
+boardEl.addEventListener('pointerdown', function(e){
+  if (gameOver || (!connected && !isAI) || game.turn() !== myColor) return;
+  var sqEl = e.target.closest('.square');
+  if (!sqEl) return;
+  var square = sqEl.dataset.square;
+  var piece = game.get(square);
+  if (piece && piece.color === myColor) {
+    isDragging = true; dragSquare = square; selected = square;
+    validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
+    ghostEl = document.createElement('span');
+    ghostEl.className = 'piece ' + piece.color + ' drag-ghost';
+    ghostEl.textContent = SYM[piece.type];
+    ghostEl.style.left = e.clientX + 'px'; ghostEl.style.top = e.clientY + 'px';
+    document.body.appendChild(ghostEl);
+    renderBoard();
+  } else {
+    selected = null; validTargets = []; renderBoard();
+  }
+});
+
+document.addEventListener('pointermove', function(e){
+  if (!isDragging || !ghostEl) return;
+  ghostEl.style.left = e.clientX + 'px'; ghostEl.style.top = e.clientY + 'px';
+});
+
+document.addEventListener('pointerup', function(e){
+  if (!isDragging) return;
+  isDragging = false;
+  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+  var targetSquare = null;
+  var squares = document.querySelectorAll('.square');
+  for (var i = 0; i < squares.length; i++) {
+    var rect = squares[i].getBoundingClientRect();
+    if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      targetSquare = squares[i].dataset.square; break;
+    }
+  }
+  if (targetSquare && validTargets.indexOf(targetSquare) >= 0) {
+    makeMove(dragSquare, targetSquare);
+  } else { selected = null; validTargets = []; renderBoard(); }
+});
 
 var audioCtx = null;
 function playSound(type){
@@ -194,34 +254,21 @@ function playSound(type){
 
 function send(msg){ if (conn && connected) { try { conn.send(msg); } catch(e){} } }
 
-function onSquareClick(square){
-  if (gameOver || !connected) return;
-  if (game.turn() !== myColor) return;
-  if (selected && validTargets.indexOf(square) >= 0) {
-    var from = selected;
-    var moving = game.get(from);
-    var isPromo = moving && moving.type === 'p' && (square[1] === '8' || square[1] === '1');
-    var mv = { from: from, to: square };
-    if (isPromo) mv.promotion = 'q';
-    var res = game.move(mv);
-    if (res) {
-      selected = null; validTargets = [];
-      send({ type:'move', from: mv.from, to: mv.to, promotion: mv.promotion, remaining: myTime });
-      renderBoard(); updateTimersUI();
-      playSound(res.captured ? 'capture' : 'move');
-      checkEnd();
-      return;
-    }
+function makeMove(from, to, promotion){
+  var moving = game.get(from);
+  if(!moving) return false;
+  var mv = { from: from, to: to };
+  if (moving.type === 'p' && (to[1] === '8' || to[1] === '1')) mv.promotion = promotion || 'q';
+  var res = game.move(mv);
+  if (res) {
+    selected = null; validTargets = []; renderBoard(); updateTimersUI(); lastTick = Date.now();
+    playSound(res.captured ? 'capture' : 'move');
+    checkEnd();
+    if (isAI && !gameOver && game.turn() !== myColor) triggerAIMove();
+    else if (!isAI) send({ type:'move', from: from, to: to, promotion: mv.promotion, remaining: myTime });
+    return true;
   }
-  var piece = game.get(square);
-  if (piece && piece.color === myColor) {
-    selected = square;
-    validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
-    renderBoard();
-  } else {
-    selected = null; validTargets = [];
-    renderBoard();
-  }
+  return false;
 }
 
 function checkEnd(){
@@ -236,10 +283,8 @@ function checkEnd(){
 
 function endGame(reason, winnerColor){
   if (gameOver) return;
-  gameOver = true;
-  clearInterval(timerInterval);
-  el('status').textContent = reason;
-  playSound('end');
+  gameOver = true; clearInterval(timerInterval);
+  el('status').textContent = reason; playSound('end');
   
   var screen = el('end-screen'); screen.classList.add('show');
   var title = el('end-title');
@@ -263,19 +308,73 @@ function endGame(reason, winnerColor){
   if (p2Win) el('p2-box').classList.add('winner');
 }
 
+var lastTick = Date.now();
 function startTimers(){
   clearInterval(timerInterval);
+  lastTick = Date.now();
   timerInterval = setInterval(function(){
     if (gameOver) return;
+    var now = Date.now(); var delta = now - lastTick; lastTick = now;
     if (game.turn() === myColor) {
-      myTime -= 100;
-      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); send({ type:'timeout', loser: myColor }); }
+      myTime -= delta;
+      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); if(!isAI) send({ type:'timeout', loser: myColor }); }
     } else {
-      oppTime -= 100;
-      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); send({ type:'timeout', loser: oppColor }); }
+      oppTime -= delta;
+      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); if(!isAI) send({ type:'timeout', loser: oppColor }); }
     }
     updateTimersUI();
   }, 100);
+  playSound('start');
+}
+
+// --- الذكاء الاصطناعي ---
+var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+function evaluateBoard(game) {
+  var totalEval = 0; var board = game.board();
+  for (var i = 0; i < 8; i++) {
+    for (var j = 0; j < 8; j++) {
+      var piece = board[i][j];
+      if (piece) { var value = pieceValues[piece.type]; totalEval += (piece.color === 'w' ? value : -value); }
+    }
+  }
+  return totalEval;
+}
+function minimax(game, depth, isMaximizing) {
+  if (depth === 0 || game.game_over()) return evaluateBoard(game);
+  var moves = game.moves();
+  if (isMaximizing) {
+    var maxEval = -Infinity;
+    for (var i = 0; i < moves.length; i++) { game.move(moves[i]); var eval = minimax(game, depth - 1, false); game.undo(); maxEval = Math.max(maxEval, eval); }
+    return maxEval;
+  } else {
+    var minEval = Infinity;
+    for (var i = 0; i < moves.length; i++) { game.move(moves[i]); var eval = minimax(game, depth - 1, true); game.undo(); minEval = Math.min(minEval, eval); }
+    return minEval;
+  }
+}
+function triggerAIMove(){
+  if (gameOver || game.turn() === myColor) return;
+  el('status').textContent = 'البوت يفكر...';
+  setTimeout(function(){
+    var moves = game.moves({ verbose: true });
+    if(moves.length === 0) return;
+    var bestMove = null;
+    if (P.level === 1) {
+      var captures = moves.filter(function(m){ return m.captured; });
+      bestMove = (captures.length > 0 && Math.random() > 0.5) ? captures[Math.floor(Math.random()*captures.length)] : moves[Math.floor(Math.random()*moves.length)];
+    } else {
+      var depth = P.level === 2 ? 2 : 3;
+      var isMaximizing = game.turn() === 'w';
+      var bestEval = isMaximizing ? -Infinity : Infinity;
+      moves.sort(function() { return 0.5 - Math.random(); });
+      for (var i = 0; i < moves.length; i++) {
+        game.move(moves[i]); var eval = minimax(game, depth - 1, !isMaximizing); game.undo();
+        if (isMaximizing) { if (eval > bestEval) { bestEval = eval; bestMove = moves[i]; } }
+        else { if (eval < bestEval) { bestEval = eval; bestMove = moves[i]; } }
+      }
+    }
+    if (bestMove) { makeMove(bestMove.from, bestMove.to, bestMove.promotion); el('status').textContent = 'دورك'; }
+  }, 200);
 }
 
 function handleMessage(msg){
@@ -285,8 +384,7 @@ function handleMessage(msg){
     el('oppName').textContent = oppName;
     el('oppAvatar').src = oppPhoto;
     el('status').textContent = 'اللعبة بدأت!';
-    playSound('start');
-    startTimers();
+    playSound('start'); startTimers();
   } else if (msg.type === 'move') {
     var mv = { from: msg.from, to: msg.to };
     if (msg.promotion) mv.promotion = msg.promotion;
@@ -310,37 +408,32 @@ function setupConn(){
     send({ type:'hello', name: myName, photo: myPhoto });
   });
   conn.on('data', handleMessage);
-  conn.on('close', function(){
-    connected = false;
-    if (!gameOver) el('status').textContent = 'انقطع الاتصال بالخصم';
-  });
+  conn.on('close', function(){ connected = false; if (!gameOver) el('status').textContent = 'انقطع الاتصال بالخصم'; });
 }
 
 function initPeer(){
   var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } };
-  if (player === '1') {
-    peer = new Peer('chess-' + room + '-host', cfg);
+  if (P.player === '1') {
+    peer = new Peer('chess-' + P.room + '-host', cfg);
     peer.on('open', function(){ el('status').textContent = 'بانتظار انضمام الصديق...'; });
     peer.on('connection', function(c){ conn = c; setupConn(); });
     peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type; });
   } else {
     peer = new Peer(cfg);
-    peer.on('open', function(){
-      conn = peer.connect('chess-' + room + '-host', { reliable: true });
-      setupConn();
-    });
-    peer.on('error', function(e){
-      el('status').textContent = 'خطأ: ' + e.type + ' — قد يكون الخصم لم يفتح اللعبة بعد';
-    });
+    peer.on('open', function(){ conn = peer.connect('chess-' + P.room + '-host', { reliable: true }); setupConn(); });
+    peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type + ' — تأكد أن صديقك فتح اللعبة'; });
   }
 }
 
 el('myName').textContent = myName;
 el('myAvatar').src = myPhoto;
 el('oppName').textContent = oppName;
+el('oppAvatar').src = oppPhoto;
 renderBoard(); updateTimersUI();
-if (room) initPeer();
-else el('status').textContent = 'رابط غير صالح';
+
+if (isAI) { connected = true; startTimers(); }
+else if (P.room) { initPeer(); }
+else { el('status').textContent = 'رابط غير صالح'; }
 })();
 </script>
 </body>
