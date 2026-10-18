@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>شطرنج</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1e1e1e; color: #eee;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh; overflow-x: hidden;
+}
+#topbar, #bottombar {
+  width: min(95vw, 95vh, 600px);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 4px; font-size: 15px; font-weight: 600;
+}
+#topbar { margin-bottom: 4px; }
+#bottombar { margin-top: 4px; }
+#oppTimer, #myTimer {
+  background: #333; padding: 4px 12px; border-radius: 6px;
+  font-family: monospace; font-size: 18px; letter-spacing: 1px; min-width: 72px; text-align: center;
+}
+#oppTimer.low, #myTimer.low { background: #8b1e1e; color: #fff; }
+#board {
+  display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+  width: min(95vw, 95vh, 600px); aspect-ratio: 1;
+  border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+.square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+.light { background: #f0d9b5; }
+.dark { background: #b58863; }
+.square.selected { box-shadow: inset 0 0 0 4px #f7d84a; }
+.square.valid::after {
+  content: ''; position: absolute; width: 30%; height: 30%;
+  border-radius: 50%; background: rgba(0,100,0,.55); pointer-events: none;
+}
+.square.capture::after {
+  content: ''; position: absolute; inset: 5%; border-radius: 50%;
+  border: 5px solid rgba(200,30,30,.8); pointer-events: none;
+}
+.piece {
+  font-size: calc(min(95vw,95vh,600px) / 8 * 0.82); line-height: 1;
+  pointer-events: none;
+}
+.piece.w { color: #ffffff; -webkit-text-stroke: 1.2px #1a1a1a; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.piece.b { color: #1a1a1a; -webkit-text-stroke: 1px rgba(255,255,255,.35); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+#status { margin-top: 10px; padding: 6px 16px; font-size: 14px; color: #aaa; text-align: center; min-height: 20px; }
+#status.end { color: #ffd84a; font-size: 17px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="topbar"><span id="oppName">الخصم</span><span id="oppTimer">10:00</span></div>
+<div id="board"></div>
+<div id="bottombar"><span id="myTimer">10:00</span><span id="myName">أنا</span></div>
+<div id="status">جارٍ الاتصال...</div>
+<script>
+(function(){
+'use strict';
+var tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#1e1e1e'); } catch(e){} }
+
+function parseParams(){
+  var sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+  if (sp) {
+    var p = sp.split('_');
+    if (p.length === 3) return { room: p[0], player: p[1].replace('p',''), color: p[2] };
+  }
+  var q = new URLSearchParams(location.search);
+  return { room: q.get('room'), player: q.get('p') || '1', color: q.get('color') || 'w' };
+}
+var P = parseParams();
+var room = P.room, player = P.player, myColor = P.color;
+var oppColor = myColor === 'w' ? 'b' : 'w';
+var myName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || (player === '1' ? 'لاعب 1' : 'لاعب 2');
+var oppName = 'بانتظار الخصم...';
+var game = new Chess();
+var selected = null, validTargets = [];
+var myTime = 600000, oppTime = 600000;
+var timerInterval = null, connected = false, gameOver = false;
+var peer = null, conn = null;
+var files = ['a','b','c','d','e','f','g','h'];
+var SYM = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+
+function el(id){ return document.getElementById(id); }
+function formatTime(ms){ if(ms<0) ms=0; var s=Math.ceil(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function updateTimersUI(){
+  el('myTimer').textContent = formatTime(myTime);
+  el('oppTimer').textContent = formatTime(oppTime);
+  el('myTimer').classList.toggle('low', myTime < 60000);
+  el('oppTimer').classList.toggle('low', oppTime < 60000);
+}
+
+function renderBoard(){
+  var b = el('board'); b.innerHTML = '';
+  var fi = [0,1,2,3,4,5,6,7], ri = [7,6,5,4,3,2,1,0];
+  if (myColor === 'b') { fi.reverse(); ri = [0,1,2,3,4,5,6,7]; }
+  for (var r = 0; r < 8; r++) {
+    for (var f = 0; f < 8; f++) {
+      var fi0 = fi[f], ri0 = ri[r];
+      var square = files[fi0] + (ri0 + 1);
+      var isLight = (fi0 + ri0) % 2 === 1;
+      var sq = document.createElement('div');
+      sq.className = 'square ' + (isLight ? 'light' : 'dark');
+      sq.dataset.square = square;
+      var p = game.get(square);
+      if (p) {
+        var sp = document.createElement('span');
+        sp.className = 'piece ' + p.color;
+        sp.textContent = SYM[p.type];
+        sq.appendChild(sp);
+      }
+      if (selected === square) sq.classList.add('selected');
+      if (validTargets.indexOf(square) >= 0) sq.classList.add(p ? 'capture' : 'valid');
+      (function(sc){ sq.addEventListener('click', function(){ onSquareClick(sc); }); })(square);
+      b.appendChild(sq);
+    }
+  }
+}
+
+var audioCtx = null;
+function playSound(type){
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    var f = { move: 620, capture: 300, start: 880, end: 220 };
+    o.frequency.value = f[type] || 500;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+    o.start(); o.stop(audioCtx.currentTime + 0.2);
+  } catch(e){}
+}
+
+function send(msg){ if (conn && connected) { try { conn.send(msg); } catch(e){} } }
+
+function onSquareClick(square){
+  if (gameOver || !connected) return;
+  if (game.turn() !== myColor) return;
+  if (selected && validTargets.indexOf(square) >= 0) {
+    var from = selected;
+    var moving = game.get(from);
+    var isPromo = moving && moving.type === 'p' && (square[1] === '8' || square[1] === '1');
+    var mv = { from: from, to: square };
+    if (isPromo) mv.promotion = 'q';
+    var res = game.move(mv);
+    if (res) {
+      selected = null; validTargets = [];
+      send({ type:'move', from: mv.from, to: mv.to, promotion: mv.promotion, remaining: myTime });
+      renderBoard(); updateTimersUI();
+      playSound(res.captured ? 'capture' : 'move');
+      checkEnd();
+      return;
+    }
+  }
+  var piece = game.get(square);
+  if (piece && piece.color === myColor) {
+    selected = square;
+    validTargets = game.moves({ square: square, verbose: true }).map(function(m){ return m.to; });
+    renderBoard();
+  } else {
+    selected = null; validTargets = [];
+    renderBoard();
+  }
+}
+
+function checkEnd(){
+  if (!game.game_over()) return;
+  var msg = '';
+  if (game.in_checkmate()) msg = game.turn() === myColor ? 'كش مات — خسرت' : 'كش مات — فزت!';
+  else if (game.in_stalemate()) msg = 'تعادل (جمود)';
+  else if (game.in_draw()) msg = 'تعادل';
+  else msg = 'انتهت اللعبة';
+  endGame(msg);
+}
+
+function endGame(reason){
+  if (gameOver) return;
+  gameOver = true;
+  clearInterval(timerInterval);
+  el('status').textContent = reason;
+  el('status').className = 'end';
+  playSound('end');
+}
+
+function startTimers(){
+  clearInterval(timerInterval);
+  timerInterval = setInterval(function(){
+    if (gameOver) return;
+    if (game.turn() === myColor) {
+      myTime -= 100;
+      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك'); }
+    } else {
+      oppTime -= 100;
+      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم'); send({ type:'timeout', loser: oppColor }); }
+    }
+    updateTimersUI();
+  }, 100);
+}
+
+function handleMessage(msg){
+  if (msg.type === 'hello') {
+    oppName = msg.name || 'الخصم';
+    el('oppName').textContent = oppName;
+    el('status').textContent = 'اللعبة بدأت!';
+    playSound('start');
+    startTimers();
+  } else if (msg.type === 'move') {
+    var mv = { from: msg.from, to: msg.to };
+    if (msg.promotion) mv.promotion = msg.promotion;
+    var res = game.move(mv);
+    if (res) {
+      oppTime = msg.remaining;
+      renderBoard(); updateTimersUI();
+      playSound(res.captured ? 'capture' : 'move');
+      checkEnd();
+    }
+  } else if (msg.type === 'timeout') {
+    if (msg.loser === myColor) endGame('خسرت — نفد وقتك');
+    else endGame('فزت! نفد وقت الخصم');
+  }
+}
+
+function setupConn(){
+  conn.on('open', function(){
+    connected = true;
+    el('status').textContent = 'متصل! جارٍ بدء اللعبة...';
+    send({ type:'hello', name: myName });
+  });
+  conn.on('data', handleMessage);
+  conn.on('close', function(){
+    connected = false;
+    if (!gameOver) el('status').textContent = 'انقطع الاتصال بالخصم';
+  });
+}
+
+function initPeer(){
+  var cfg = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } };
+  if (player === '1') {
+    peer = new Peer('chess-' + room + '-host', cfg);
+    peer.on('open', function(){ el('status').textContent = 'بانتظار انضمام الصديق...'; });
+    peer.on('connection', function(c){ conn = c; setupConn(); });
+    peer.on('error', function(e){ el('status').textContent = 'خطأ: ' + e.type; });
+  } else {
+    peer = new Peer(cfg);
+    peer.on('open', function(){
+      conn = peer.connect('chess-' + room + '-host', { reliable: true });
+      setupConn();
+    });
+    peer.on('error', function(e){
+      el('status').textContent = 'خطأ: ' + e.type + ' — قد يكون الخصم لم يفتح اللعبة بعد';
+    });
+  }
+}
+
+el('myName').textContent = myName;
+el('oppName').textContent = oppName;
+renderBoard(); updateTimersUI();
+if (room) initPeer();
+else el('status').textContent = 'رابط غير صالح';
+})();
+</script>
+</body>
+</html>
