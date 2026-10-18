@@ -3,9 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>شطرنج أطلس</title>
+<title>chess67</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+<!-- محاولة تحميل مكتبة الشطرنج من 3 سيرفرات مختلفة -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+  if (typeof Chess === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"><\/script>');
+  }
+</script>
+<script>
+  if (typeof Chess === 'undefined') {
+    document.write('<script src="https://unpkg.com/chess.js@0.10.3/chess.min.js"><\/script>');
+  }
+</script>
+<!-- مكتبة الاتصال -->
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent !important; user-select: none; }
@@ -21,7 +33,7 @@ body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
 #board-container { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 70vh; margin: auto 0; display: flex; justify-content: center; align-items: center; }
-#board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.6); touch-action: none; }
+#board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.6); touch-action: none; background: #b58863; }
 .square { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: none; }
 .light { background: #eeddcc; }
 .dark { background: #b58863; }
@@ -92,8 +104,21 @@ body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background
 </div>
 
 <script>
+window.onerror = function(msg, url, line) {
+  var st = document.getElementById('status');
+  if(st) { st.textContent = "حدث خطأ: " + msg; st.style.color = "red"; }
+  return false;
+};
+
 (function(){
 'use strict';
+
+if (typeof Chess === 'undefined') {
+  document.getElementById('status').textContent = "فشل تحميل محرك الشطرنج. يرجى إغلاق التطبيق وفتحه مرة أخرى.";
+  document.getElementById('status').style.color = "red";
+  return;
+}
+
 var tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#121212'); tg.setBackgroundColor('#121212'); } catch(e){} }
 
@@ -266,20 +291,20 @@ function endGame(reason, winnerColor, detail){
   var screen = el('end-screen'); screen.classList.add('show');
   var title = el('end-title');
   
-  var p1Win = winnerColor === 'w';
-  var p2Win = winnerColor === 'b';
+  var p1Win = winnerColor === myColor;
+  var p2Win = winnerColor && winnerColor !== myColor;
   
-  if (winnerColor === myColor) { title.textContent = 'أنت فزت! 🏆'; title.className = 'end-title win'; }
-  else if (winnerColor && winnerColor !== myColor) { title.textContent = 'أنت خسرت 💔'; title.className = 'end-title lose'; }
+  if (p1Win) { title.textContent = 'أنت فزت! 🏆'; title.className = 'end-title win'; }
+  else if (p2Win) { title.textContent = 'أنت خسرت 💔'; title.className = 'end-title lose'; }
   else { title.textContent = 'تعادل 🤝'; title.className = 'end-title'; }
   
   el('p1-img').src = myAvatarUrl;
   el('p1-name').textContent = el('myName').textContent;
-  el('p1-res').textContent = p1Win ? 'فوز' : (winnerColor ? 'خسارة' : 'تعادل');
+  el('p1-res').textContent = p1Win ? 'فوز' : (p2Win ? 'خسارة' : 'تعادل');
   
   el('p2-img').src = oppAvatarUrl;
   el('p2-name').textContent = el('oppName').textContent;
-  el('p2-res').textContent = p2Win ? 'فوز' : (winnerColor ? 'خسارة' : 'تعادل');
+  el('p2-res').textContent = p2Win ? 'فوز' : (p1Win ? 'خسارة' : 'تعادل');
   
   if (p1Win) el('p1-box').classList.add('winner');
   if (p2Win) el('p2-box').classList.add('winner');
@@ -295,10 +320,10 @@ function startTimers(){
     var now = Date.now(); var delta = now - lastTick; lastTick = now;
     if (game.turn() === myColor) {
       myTime -= delta;
-      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', isAI ? 'b' : 'b', 'الوقت'); if(!isAI) send({ type:'timeout', loser: myColor }); }
+      if (myTime <= 0) { myTime = 0; updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w', 'الوقت'); if(!isAI) send({ type:'timeout', loser: myColor }); }
     } else {
       oppTime -= delta;
-      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', isAI ? 'w' : 'w', 'الوقت'); if(!isAI) send({ type:'timeout', loser: myColor === 'w' ? 'b' : 'w' }); }
+      if (oppTime <= 0) { oppTime = 0; updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor, 'الوقت'); if(!isAI) send({ type:'timeout', loser: myColor === 'w' ? 'b' : 'w' }); }
     }
     updateTimersUI();
   }, 100);
