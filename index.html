@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>شطرنج أطلس</title>
+<title>chess67</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -141,25 +141,22 @@ function parseParams(){
   var sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
   if (sp) {
     var p = sp.split('_');
-    if (p.length === 3) return { mode: 'pvp', room: p[0], player: p[1].replace('p',''), color: p[2] };
+    if (p.length === 3) return { room: p[0], player: p[1].replace('p',''), color: p[2] };
   }
   var q = new URLSearchParams(location.search);
   return { 
-    mode: q.get('mode') || 'pvp', 
     room: q.get('room'), 
     player: q.get('p') || '1', 
-    color: q.get('color') || 'w',
-    level: parseInt(q.get('level')) || 1
+    color: q.get('color') || 'w'
   };
 }
 var P = parseParams();
-var isAI = P.mode === 'ai';
-var myColor = isAI ? 'w' : P.color;
+var myColor = P.color;
 var oppColor = myColor === 'w' ? 'b' : 'w';
 var myName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || 'لاعب';
 var myPhoto = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.photo_url) || 'https://ui-avatars.com/api/?name=M&background=333&color=fff';
-var oppName = isAI ? (P.level === 1 ? 'بوت (سهل)' : P.level === 2 ? 'بوت (متوسط)' : 'بوت (صعب)') : 'بانتظار الخصم...';
-var oppPhoto = isAI ? 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png' : 'https://ui-avatars.com/api/?name=O&background=333&color=fff';
+var oppName = 'بانتظار الخصم...';
+var oppPhoto = 'https://ui-avatars.com/api/?name=O&background=333&color=fff';
 
 var game = new Chess();
 var selected = null, validTargets = [];
@@ -214,7 +211,7 @@ var isDragging = false, dragSquare = null, ghostEl = null;
 var boardEl = el('board');
 
 boardEl.addEventListener('pointerdown', function(e){
-  if (gameOver || (!connected && !isAI) || game.turn() !== myColor) return;
+  if (gameOver || !connected || game.turn() !== myColor) return;
   var sqEl = e.target.closest('.square');
   if (!sqEl) return;
   var square = sqEl.dataset.square;
@@ -262,7 +259,7 @@ function playSound(type){
     var audio = el(audioId);
     if (audio) {
       audio.currentTime = 0;
-      audio.volume = 0.5; // خفض الصوت ليكون مريح
+      audio.volume = 0.5; 
       audio.play().catch(function(e){});
     }
   } catch(e){}
@@ -280,8 +277,7 @@ function makeMove(from, to, promotion){
     selected = null; validTargets = []; renderBoard(); updateTimersUI(); lastTick = Date.now();
     playSound(res.captured ? 'capture' : 'move');
     checkEnd();
-    if (isAI && !gameOver && game.turn() !== myColor) triggerAIMove();
-    else if (!isAI) send({ type:'move', from: from, to: to, promotion: mv.promotion, remaining: myTime });
+    send({ type:'move', from: from, to: to, promotion: mv.promotion, remaining: myTime });
     return true;
   }
   return false;
@@ -324,6 +320,7 @@ function endGame(reason, winnerColor){
   if (p2Win) el('p2-box').classList.add('winner');
 }
 
+// --- التايمر الدقيق ---
 var lastTick = Date.now();
 function startTimers(){
   clearInterval(timerInterval);
@@ -334,78 +331,14 @@ function startTimers(){
     
     if (game.turn() === myColor) {
       myTime = Math.max(0, myTime - delta);
-      if (myTime === 0) { updateTimersUI(); endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w'); if(!isAI) send({ type:'timeout', loser: myColor }); return; }
+      if (myTime === 0) { updateTimersUI(); endGame('خسرت — نفد وقتك', oppColor); send({ type:'timeout', loser: myColor }); return; }
     } else {
       oppTime = Math.max(0, oppTime - delta);
-      if (oppTime === 0) { updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); if(!isAI) send({ type:'timeout', loser: oppColor }); return; }
+      if (oppTime === 0) { updateTimersUI(); endGame('فزت! نفد وقت الخصم', myColor); send({ type:'timeout', loser: oppColor }); return; }
     }
     updateTimersUI();
   }, 100);
   playSound('start');
-}
-
-// --- الذكاء الاصطناعي ---
-var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-function evaluateBoard(game) {
-  var totalEval = 0; var board = game.board();
-  for (var i = 0; i < 8; i++) {
-    for (var j = 0; j < 8; j++) {
-      var piece = board[i][j];
-      if (piece) { var value = pieceValues[piece.type]; totalEval += (piece.color === 'w' ? value : -value); }
-    }
-  }
-  return totalEval;
-}
-
-function minimax(game, depth, isMaximizing) {
-  if (depth === 0 || game.game_over()) return evaluateBoard(game);
-  var moves = game.moves();
-  if (isMaximizing) {
-    var maxEval = -Infinity;
-    for (var i = 0; i < moves.length; i++) { 
-      game.move(moves[i]); 
-      var score = minimax(game, depth - 1, false); 
-      game.undo(); 
-      maxEval = Math.max(maxEval, score); 
-    }
-    return maxEval;
-  } else {
-    var minEval = Infinity;
-    for (var i = 0; i < moves.length; i++) { 
-      game.move(moves[i]); 
-      var score = minimax(game, depth - 1, true); 
-      game.undo(); 
-      minEval = Math.min(minEval, score); 
-    }
-    return minEval;
-  }
-}
-
-function triggerAIMove(){
-  if (gameOver || game.turn() === myColor) return;
-  el('status').textContent = 'البوت يفكر...';
-  setTimeout(function(){
-    var moves = game.moves({ verbose: true });
-    if(moves.length === 0) return;
-    var bestMove = null;
-    if (P.level === 1) {
-      var captures = moves.filter(function(m){ return m.captured; });
-      bestMove = (captures.length > 0 && Math.random() > 0.5) ? captures[Math.floor(Math.random()*captures.length)] : moves[Math.floor(Math.random()*moves.length)];
-    } else {
-      var depth = P.level === 2 ? 2 : 3;
-      var isMaximizing = game.turn() === 'w';
-      var bestEval = isMaximizing ? -Infinity : Infinity;
-      moves.sort(function() { return 0.5 - Math.random(); });
-      for (var i = 0; i < moves.length; i++) {
-        game.move(moves[i]); 
-        var score = minimax(game, depth - 1, !isMaximizing); 
-        game.undo();
-        if (isMaximizing) { if (score > bestEval) { bestEval = score; bestMove = moves[i]; } }
-        else { if (score < bestEval) { bestEval = score; bestMove = moves[i]; } }
-      }
-    }
-    if (bestMove) { makeMove(bestMove.from, bestMove.to, bestMove.promotion); el('status').textContent = 'دورك'; }
-  }, 600);
 }
 
 // --- الاتصال ---
@@ -428,7 +361,7 @@ function handleMessage(msg){
       checkEnd();
     }
   } else if (msg.type === 'timeout') {
-    if (msg.loser === myColor) endGame('خسرت — نفد وقتك', myColor === 'w' ? 'b' : 'w');
+    if (msg.loser === myColor) endGame('خسرت — نفد وقتك', oppColor);
     else endGame('فزت! نفد وقت الخصم', myColor);
   }
 }
@@ -482,10 +415,7 @@ el('oppName').textContent = oppName;
 el('oppAvatar').src = oppPhoto;
 renderBoard(); updateTimersUI();
 
-if (isAI) { 
-  connected = true; 
-  startTimers(); 
-} else if (P.room) { 
+if (P.room) { 
   setTimeout(initPeer, 500); 
 } else { 
   el('status').textContent = 'رابط غير صالح'; 
